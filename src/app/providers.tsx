@@ -21,6 +21,7 @@ export function Providers({ children }: { children: ReactNode }) {
         <Suspense fallback={null}>
           <AnalyticsListener />
         </Suspense>
+      </AuthProvider>
       <Toaster
         position="top-center"
         toastOptions={{
@@ -35,7 +36,7 @@ export function Providers({ children }: { children: ReactNode }) {
           success: { iconTheme: { primary: "#e8b04b", secondary: "#2a0e48" } },
           error: { iconTheme: { primary: "#d43d84", secondary: "#fff" } },
         }}
-      </Toaster>
+      />
     </ThemeProvider>
   );
 }
