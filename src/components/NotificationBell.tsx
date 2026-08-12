@@ -26,10 +26,10 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    if (!user) {
-      setNotifications([]);
-      return;
-    }
+    // Sem usuário o componente nem chega a renderizar (return null abaixo),
+    // então não precisa resetar `notifications` nesse caso — só evita
+    // assinar o Firestore à toa.
+    if (!user) return;
     const unsub = subscribeToCustomerNotifications(user.uid, setNotifications, () =>
       setNotifications([])
     );
