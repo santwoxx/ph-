@@ -84,6 +84,21 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // ---------- notifications ----------
+    // Avisos que aparecem no sininho do cliente (ex: mudança de status de
+    // um pedido). Só o admin cria; o cliente dono só pode marcar como lida
+    // (não pode criar, apagar, nem ler notificação de outra pessoa).
+    match /notifications/{notificationId} {
+      allow create: if isAdmin();
+      allow read: if isAdmin() ||
+        (isSignedIn() && resource.data.customerUid == request.auth.uid);
+      allow update: if isAdmin() ||
+        (isSignedIn() &&
+          resource.data.customerUid == request.auth.uid &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(["read"]));
+      allow delete: if isAdmin();
+    }
+
     // Qualquer outra coleção não mapeada fica bloqueada por padrão.
     match /{document=**} {
       allow read, write: if false;

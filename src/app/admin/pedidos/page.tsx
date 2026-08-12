@@ -106,7 +106,7 @@ export default function AdminOrdersPage() {
   async function handleStatusChange(order: Order, status: OrderStatus) {
     setUpdatingId(order.id);
     try {
-      await updateOrderStatus(order.id, status);
+      await updateOrderStatus(order, status);
       toast.success(`Pedido atualizado para "${ORDER_STATUS_LABEL[status]}"`);
     } catch (err) {
       console.error(err);

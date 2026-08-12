@@ -228,6 +228,24 @@ export default function AdminSettingsPage() {
         </section>
 
         <section className="rounded-2xl border border-acai-100 bg-white p-5 shadow-card sm:p-6">
+          <h2 className="font-display text-base font-bold text-acai-950">Meta de vendas</h2>
+          <p className="mt-1 text-sm text-acai-400">
+            Definir uma meta mensal mostra uma barra de progresso na Visão geral do painel.
+          </p>
+          <div className="mt-4">
+            <Input
+              label="Meta de faturamento do mês (R$)"
+              type="number"
+              min={0}
+              step="0.01"
+              placeholder="Ex: 15000"
+              value={form.monthlyGoal ?? 0}
+              onChange={(e) => update("monthlyGoal", Number(e.target.value))}
+            />
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-acai-100 bg-white p-5 shadow-card sm:p-6">
           <h2 className="font-display text-base font-bold text-acai-950">Categorias do cardápio</h2>
           <div className="mt-3 flex flex-wrap gap-2">
             {form.categories.map((cat) => (

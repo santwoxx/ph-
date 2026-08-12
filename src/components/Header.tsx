@@ -8,6 +8,7 @@ import { useTheme } from "next-themes";
 import { useCartStore } from "@/store/cart";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
+import { NotificationBell } from "@/components/NotificationBell";
 
 export function Header() {
   const totalItems = useCartStore((s) => s.totalItems());
@@ -102,6 +103,8 @@ export function Header() {
               Entrar
             </Link>
           )}
+
+          <NotificationBell />
 
           {mounted && (
             <button

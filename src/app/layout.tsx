@@ -18,9 +18,10 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
   title: {
-    default: "Açaí do Bairro | Cardápio Digital",
-    template: "%s | Açaí do Bairro",
+    default: "Açaí do PH | Cardápio Digital",
+    template: "%s | Açaí do PH",
   },
   description:
     "Peça já o seu açaí! Monte do seu jeito, escolha o tamanho e os complementos e receba fresquinho em casa.",

@@ -8,6 +8,7 @@ import {
   TrendingUp,
   Wallet,
   PiggyBank,
+  Target,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -23,6 +24,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { Spinner } from "@/components/ui/Spinner";
 import { subscribeToAllOrders } from "@/lib/data/orders";
 import { subscribeToExpenses } from "@/lib/data/expenses";
+import { useSettings } from "@/context/SettingsContext";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import type { Order, Expense } from "@/lib/types";
 
@@ -39,6 +41,7 @@ function startOfMonth(d: Date) {
 const PENDING_STATUSES = ["pending", "confirmed", "preparing", "out_for_delivery"];
 
 export default function AdminDashboardPage() {
+  const { settings } = useSettings();
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [expenses, setExpenses] = useState<Expense[] | null>(null);
 
@@ -134,6 +137,44 @@ export default function AdminDashboardPage() {
           tone="berry"
         />
       </div>
+
+      {Boolean(settings.monthlyGoal) && settings.monthlyGoal! > 0 && (
+        <div className="rounded-2xl border border-acai-100 bg-white p-5 shadow-card">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gold/15 text-amber-600">
+                <Target className="h-5 w-5" />
+              </span>
+              <div>
+                <h2 className="font-display text-base font-bold text-acai-950">Meta do mês</h2>
+                <p className="text-xs text-acai-400">
+                  {formatCurrency(stats.monthRevenue)} de {formatCurrency(settings.monthlyGoal!)}
+                </p>
+              </div>
+            </div>
+            <span className="font-display text-lg font-extrabold text-acai-700">
+              {Math.min(100, Math.round((stats.monthRevenue / settings.monthlyGoal!) * 100))}%
+            </span>
+          </div>
+          <div className="mt-4 h-3 w-full overflow-hidden rounded-full bg-acai-50">
+            <div
+              className="h-full rounded-full bg-acai-gradient transition-all duration-500"
+              style={{
+                width: `${Math.min(100, (stats.monthRevenue / settings.monthlyGoal!) * 100)}%`,
+              }}
+            />
+          </div>
+          {stats.monthRevenue >= settings.monthlyGoal! ? (
+            <p className="mt-2 text-xs font-semibold text-emerald-600">
+              🎉 Meta batida! Configure uma nova em Configurações.
+            </p>
+          ) : (
+            <p className="mt-2 text-xs text-acai-400">
+              Faltam {formatCurrency(settings.monthlyGoal! - stats.monthRevenue)} para bater a meta.
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="rounded-2xl border border-acai-100 bg-white p-5 shadow-card lg:col-span-2">

@@ -137,6 +137,19 @@ export type StoreSettings = {
   isOpen: boolean;
   categories: string[];
   pixKey?: string;
+  monthlyGoal?: number;
+};
+
+// Aviso que o admin dispara (hoje, automaticamente ao mudar o status de um
+// pedido) e que aparece no sininho de notificações do cliente.
+export type AppNotification = {
+  id: string;
+  customerUid: string;
+  orderId?: string;
+  title: string;
+  message: string;
+  read: boolean;
+  createdAt: number;
 };
 
 export type UserProfile = {

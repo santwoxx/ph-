@@ -18,6 +18,7 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   isOpen: true,
   categories: ["Açaí", "Combos", "Adicionais", "Bebidas", "Sobremesas"],
   pixKey: "",
+  monthlyGoal: 0,
 };
 
 export async function getSettings(): Promise<StoreSettings> {

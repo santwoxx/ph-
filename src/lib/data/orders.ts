@@ -7,6 +7,7 @@ import {
   orderBy,
   query,
   where,
+  writeBatch,
   serverTimestamp,
   Timestamp,
 } from "firebase/firestore";
@@ -89,11 +90,54 @@ export function subscribeToCustomerOrders(
   );
 }
 
-export async function updateOrderStatus(id: string, status: OrderStatus) {
-  return updateDoc(doc(db, COLLECTION, id), {
+const STATUS_NOTIFICATION: Partial<Record<OrderStatus, { title: string; message: string }>> = {
+  confirmed: {
+    title: "Pedido confirmado! 🎉",
+    message: "Já recebemos seu pedido e vamos começar a preparar.",
+  },
+  preparing: {
+    title: "Preparando seu pedido 🍇",
+    message: "Seu açaí está sendo preparado com carinho.",
+  },
+  out_for_delivery: {
+    title: "Saiu para entrega! 🛵",
+    message: "Seu pedido está a caminho.",
+  },
+  delivered: {
+    title: "Pedido entregue ✅",
+    message: "Aproveite seu açaí! Bom apetite.",
+  },
+  cancelled: {
+    title: "Pedido cancelado",
+    message: "Seu pedido foi cancelado. Qualquer dúvida, fale com a loja.",
+  },
+};
+
+// Quem decide mudar o status é sempre o admin, pelo painel. Cada mudança
+// já gera automaticamente uma notificação para o cliente dono do pedido
+// (ele vê no sininho do próprio painel) — um único batch garante que o
+// status e o aviso ficam consistentes entre si.
+export async function updateOrderStatus(order: Order, status: OrderStatus) {
+  const batch = writeBatch(db);
+
+  batch.update(doc(db, COLLECTION, order.id), {
     status,
     updatedAt: serverTimestamp(),
   });
+
+  const notice = STATUS_NOTIFICATION[status];
+  if (notice) {
+    batch.set(doc(collection(db, "notifications")), {
+      customerUid: order.customerUid,
+      orderId: order.id,
+      title: notice.title,
+      message: notice.message,
+      read: false,
+      createdAt: serverTimestamp(),
+    });
+  }
+
+  return batch.commit();
 }
 
 export async function updateOrder(id: string, data: Partial<Order>) {
