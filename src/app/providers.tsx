@@ -8,6 +8,7 @@ import { ThemeProvider } from "next-themes";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { FirebaseSetupNotice } from "@/components/FirebaseSetupNotice";
 import { AnalyticsListener } from "@/components/AnalyticsListener";
+import { PWARegister } from "@/components/PWARegister";
 
 export function Providers({ children }: { children: ReactNode }) {
   if (!isFirebaseConfigured) {
@@ -21,6 +22,7 @@ export function Providers({ children }: { children: ReactNode }) {
         <Suspense fallback={null}>
           <AnalyticsListener />
         </Suspense>
+        <PWARegister />
       </AuthProvider>
       <Toaster
         position="top-center"

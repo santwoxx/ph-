@@ -5,8 +5,8 @@ import type { StoreSettings } from "@/lib/types";
 const DOC_PATH = ["settings", "store"] as const;
 
 export const DEFAULT_SETTINGS: StoreSettings = {
-  storeName: process.env.NEXT_PUBLIC_STORE_NAME || "Açaí do Bairro",
-  tagline: "O açaí mais cremoso da cidade, na porta da sua casa",
+  storeName: process.env.NEXT_PUBLIC_STORE_NAME || "Açaí do PH",
+  tagline: "O melhor açaí da região, aberto até meia-noite!",
   logoUrl: "",
   bannerUrl: "",
   whatsapp: process.env.NEXT_PUBLIC_STORE_WHATSAPP || "",

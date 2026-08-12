@@ -25,6 +25,11 @@ export const metadata: Metadata = {
   },
   description:
     "Peça já o seu açaí! Monte do seu jeito, escolha o tamanho e os complementos e receba fresquinho em casa.",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Açaí do PH",
+  },
 };
 
 export const viewport: Viewport = {
