@@ -20,7 +20,17 @@ export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState<string>("Todos");
   const [selected, setSelected] = useState<Product | null>(null);
 
+  // O horário de funcionamento depende da hora local de quem está vendo a
+  // página — o servidor (Vercel, em UTC) e o navegador do visitante quase
+  // sempre calculam horas diferentes. Por isso só calculamos isso depois
+  // que o componente já montou no navegador: antes disso assumimos "aberta"
+  // para o HTML do servidor bater com a primeira renderização do client e
+  // evitar erro de hidratação.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   const isStoreOpen = useMemo(() => {
+    if (!mounted) return true;
     if (!settings.isOpen) return false;
     try {
       const regex = /(\d{1,2})h(?: \d{2}m)? às (\d{1,2})h/i;
@@ -33,7 +43,7 @@ export default function HomePage() {
       }
     } catch (e) {}
     return true;
-  }, [settings.isOpen, settings.openingHours]);
+  }, [mounted, settings.isOpen, settings.openingHours]);
 
   useEffect(() => {
     const unsub = subscribeToProducts(setProducts, () => setProducts([]));
