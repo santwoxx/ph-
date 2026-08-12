@@ -97,8 +97,20 @@ export type Order = {
   changeFor?: number | null;
   status: OrderStatus;
   notes?: string;
+  rating?: number;
+  feedback?: string;
+  scheduledTo?: string;
   createdAt: number;
   updatedAt: number;
+};
+
+export type Coupon = {
+  id: string; // código, ex: BEMVINDO10
+  type: "fixed" | "percentage";
+  value: number;
+  minOrder?: number;
+  active: boolean;
+  createdAt: number;
 };
 
 export type Expense = {
@@ -132,5 +144,6 @@ export type UserProfile = {
   name: string;
   email: string;
   phone: string;
+  addresses?: (OrderAddress & { tag: string })[];
   createdAt: number;
 };

@@ -39,6 +39,9 @@ export function mapOrder(id: string, data: Record<string, unknown>): Order {
     changeFor: (data.changeFor as number | null) ?? null,
     status: (data.status as OrderStatus) ?? "pending",
     notes: (data.notes as string) ?? "",
+    rating: data.rating as number | undefined,
+    feedback: data.feedback as string | undefined,
+    scheduledTo: data.scheduledTo as string | undefined,
     createdAt: toMillis(data.createdAt),
     updatedAt: toMillis(data.updatedAt),
   };
@@ -89,6 +92,13 @@ export function subscribeToCustomerOrders(
 export async function updateOrderStatus(id: string, status: OrderStatus) {
   return updateDoc(doc(db, COLLECTION, id), {
     status,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function updateOrder(id: string, data: Partial<Order>) {
+  return updateDoc(doc(db, COLLECTION, id), {
+    ...data,
     updatedAt: serverTimestamp(),
   });
 }

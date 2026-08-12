@@ -77,8 +77,8 @@ export function ProductModal({
         onClick={onClose}
         aria-hidden
       />
-      <div className="relative flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl animate-scale-in sm:rounded-3xl">
-        <div className="relative h-56 w-full shrink-0 bg-acai-50 sm:h-64">
+      <div className="relative flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl animate-scale-in dark:bg-acai-950 sm:rounded-3xl">
+        <div className="relative h-56 w-full shrink-0 bg-acai-50 dark:bg-acai-900 sm:h-64">
           {product.imageUrl ? (
             <Image src={product.imageUrl} alt={product.name} fill className="object-cover" />
           ) : (
@@ -86,7 +86,7 @@ export function ProductModal({
           )}
           <button
             onClick={onClose}
-            className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-acai-900 shadow-md transition hover:scale-105"
+            className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-acai-900 shadow-md transition hover:scale-105 dark:bg-acai-800/90 dark:text-white"
             aria-label="Fechar"
           >
             <X className="h-5 w-5" />
@@ -94,12 +94,12 @@ export function ProductModal({
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">
-          <h2 className="font-display text-xl font-bold text-acai-950">{product.name}</h2>
-          <p className="mt-1.5 text-sm text-acai-500">{product.description}</p>
+          <h2 className="font-display text-xl font-bold text-acai-950 dark:text-white">{product.name}</h2>
+          <p className="mt-1.5 text-sm text-acai-500 dark:text-acai-400">{product.description}</p>
 
           {product.sizes.length > 0 && (
             <div className="mt-6">
-              <p className="mb-2.5 text-sm font-bold text-acai-900">Escolha o tamanho</p>
+              <p className="mb-2.5 text-sm font-bold text-acai-900 dark:text-acai-100">Escolha o tamanho</p>
               <div className="flex flex-wrap gap-2">
                 {product.sizes.map((s, i) => (
                   <button
@@ -108,7 +108,7 @@ export function ProductModal({
                     className={`rounded-xl border-2 px-4 py-2.5 text-sm font-semibold transition ${
                       i === sizeIndex
                         ? "border-acai-600 bg-acai-600 text-white shadow-soft"
-                        : "border-acai-100 text-acai-700 hover:border-acai-300"
+                        : "border-acai-100 text-acai-700 hover:border-acai-300 dark:border-acai-800 dark:text-acai-300 dark:hover:border-acai-600"
                     }`}
                   >
                     {s.label} · {formatCurrency(s.price)}
@@ -120,7 +120,7 @@ export function ProductModal({
 
           {product.extras.length > 0 && (
             <div className="mt-6">
-              <p className="mb-2.5 text-sm font-bold text-acai-900">Complementos</p>
+              <p className="mb-2.5 text-sm font-bold text-acai-900 dark:text-acai-100">Complementos</p>
               <div className="space-y-2">
                 {product.extras.map((extra) => {
                   const checked = selectedExtras.some((e) => e.name === extra.name);
@@ -130,23 +130,23 @@ export function ProductModal({
                       onClick={() => toggleExtra(extra)}
                       className={`flex w-full items-center justify-between rounded-xl border-2 px-4 py-2.5 text-sm transition ${
                         checked
-                          ? "border-acai-500 bg-acai-50"
-                          : "border-acai-100 hover:border-acai-200"
+                          ? "border-acai-500 bg-acai-50 dark:bg-acai-900/50"
+                          : "border-acai-100 hover:border-acai-200 dark:border-acai-800 dark:hover:border-acai-700"
                       }`}
                     >
-                      <span className="flex items-center gap-2.5 font-medium text-acai-800">
+                      <span className="flex items-center gap-2.5 font-medium text-acai-800 dark:text-acai-200">
                         <span
                           className={`flex h-5 w-5 items-center justify-center rounded-md border-2 ${
                             checked
                               ? "border-acai-600 bg-acai-600 text-white"
-                              : "border-acai-200"
+                              : "border-acai-200 dark:border-acai-700"
                           }`}
                         >
                           {checked && <Check className="h-3.5 w-3.5" />}
                         </span>
                         {extra.name}
                       </span>
-                      <span className="font-semibold text-acai-600">
+                      <span className="font-semibold text-acai-600 dark:text-acai-300">
                         + {formatCurrency(extra.price)}
                       </span>
                     </button>
@@ -168,19 +168,19 @@ export function ProductModal({
           </div>
         </div>
 
-        <div className="flex items-center gap-3 border-t border-acai-100 bg-white p-5">
-          <div className="flex items-center gap-3 rounded-full border-2 border-acai-100 px-2 py-1.5">
+        <div className="flex items-center gap-3 border-t border-acai-100 bg-white p-5 dark:border-acai-800 dark:bg-acai-950">
+          <div className="flex items-center gap-3 rounded-full border-2 border-acai-100 px-2 py-1.5 dark:border-acai-800">
             <button
               onClick={() => setQty((q) => Math.max(1, q - 1))}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-acai-700 transition hover:bg-acai-50"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-acai-700 transition hover:bg-acai-50 dark:text-acai-300 dark:hover:bg-acai-900"
               aria-label="Diminuir quantidade"
             >
               <Minus className="h-4 w-4" />
             </button>
-            <span className="w-5 text-center font-bold text-acai-950">{qty}</span>
+            <span className="w-5 text-center font-bold text-acai-950 dark:text-white">{qty}</span>
             <button
               onClick={() => setQty((q) => q + 1)}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-acai-700 transition hover:bg-acai-50"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-acai-700 transition hover:bg-acai-50 dark:text-acai-300 dark:hover:bg-acai-900"
               aria-label="Aumentar quantidade"
             >
               <Plus className="h-4 w-4" />

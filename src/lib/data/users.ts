@@ -27,13 +27,14 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
     name: (data.name as string) ?? "",
     email: (data.email as string) ?? "",
     phone: (data.phone as string) ?? "",
+    addresses: data.addresses ?? [],
     createdAt: Date.now(),
   };
 }
 
 export async function updateUserProfile(
   uid: string,
-  data: Partial<{ name: string; phone: string }>
+  data: Partial<{ name: string; phone: string; addresses: any[] }>
 ) {
   return setDoc(doc(db, "users", uid), data, { merge: true });
 }

@@ -4,6 +4,7 @@ import { Suspense, type ReactNode } from "react";
 import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "@/context/AuthContext";
 import { SettingsProvider } from "@/context/SettingsContext";
+import { ThemeProvider } from "next-themes";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { FirebaseSetupNotice } from "@/components/FirebaseSetupNotice";
 import { AnalyticsListener } from "@/components/AnalyticsListener";
@@ -14,11 +15,12 @@ export function Providers({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthProvider>
-      <SettingsProvider>{children}</SettingsProvider>
-      <Suspense fallback={null}>
-        <AnalyticsListener />
-      </Suspense>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <AuthProvider>
+        <SettingsProvider>{children}</SettingsProvider>
+        <Suspense fallback={null}>
+          <AnalyticsListener />
+        </Suspense>
       <Toaster
         position="top-center"
         toastOptions={{
@@ -33,7 +35,7 @@ export function Providers({ children }: { children: ReactNode }) {
           success: { iconTheme: { primary: "#e8b04b", secondary: "#2a0e48" } },
           error: { iconTheme: { primary: "#d43d84", secondary: "#fff" } },
         }}
-      />
-    </AuthProvider>
+      </Toaster>
+    </ThemeProvider>
   );
 }

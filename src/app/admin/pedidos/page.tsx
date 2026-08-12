@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import toast from "react-hot-toast";
-import { ChevronDown, ClipboardList, Phone, MapPin, Bike, Store } from "lucide-react";
+import { ChevronDown, ClipboardList, Phone, MapPin, Bike, Store, Clock, Star } from "lucide-react";
 import clsx from "clsx";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Spinner } from "@/components/ui/Spinner";
@@ -32,8 +32,68 @@ export default function AdminOrdersPage() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
+  const initialLoadRef = useRef(true);
+  const maxTimeRef = useRef<number>(0);
+
   useEffect(() => {
-    const unsub = subscribeToAllOrders(setOrders, () => setOrders([]));
+    const unsub = subscribeToAllOrders((newOrders) => {
+      setOrders(newOrders);
+      
+      if (newOrders.length === 0) {
+        initialLoadRef.current = false;
+        return;
+      }
+
+      const currentMax = Math.max(...newOrders.map(o => o.createdAt));
+      
+      if (initialLoadRef.current) {
+        initialLoadRef.current = false;
+        maxTimeRef.current = currentMax;
+      } else if (currentMax > maxTimeRef.current) {
+        maxTimeRef.current = currentMax;
+        
+        // Notify
+        toast("🔔 Novo pedido recebido!", {
+          duration: 6000,
+          style: { background: "#10b981", color: "#fff", fontWeight: "bold", fontSize: "16px" }
+        });
+
+        // Play sound via AudioContext (Zero infra)
+        try {
+          const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+          if (AudioContext) {
+            const ctx = new AudioContext();
+            
+            // Ding 1
+            const osc1 = ctx.createOscillator();
+            const gain1 = ctx.createGain();
+            osc1.type = "sine";
+            osc1.frequency.setValueAtTime(880, ctx.currentTime);
+            gain1.gain.setValueAtTime(0.5, ctx.currentTime);
+            gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+            osc1.connect(gain1);
+            gain1.connect(ctx.destination);
+            osc1.start();
+            osc1.stop(ctx.currentTime + 0.3);
+            
+            // Ding 2 (Chord)
+            const osc2 = ctx.createOscillator();
+            const gain2 = ctx.createGain();
+            osc2.type = "sine";
+            osc2.frequency.setValueAtTime(1108.73, ctx.currentTime + 0.1); // C#6
+            gain2.gain.setValueAtTime(0.5, ctx.currentTime + 0.1);
+            gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+            osc2.connect(gain2);
+            gain2.connect(ctx.destination);
+            osc2.start(ctx.currentTime + 0.1);
+            osc2.stop(ctx.currentTime + 0.5);
+          }
+        } catch(e) {
+          console.error("Audio block", e);
+        }
+      }
+    }, () => setOrders([]));
+    
     return () => unsub();
   }, []);
 
@@ -106,15 +166,25 @@ export default function AdminOrdersPage() {
                   <div className="flex items-center gap-3">
                     <span
                       className={clsx(
-                        "flex h-9 w-9 items-center justify-center rounded-full",
+                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
                         order.deliveryType === "delivery" ? "bg-acai-100 text-acai-700" : "bg-gold/15 text-amber-700"
                       )}
                     >
                       {order.deliveryType === "delivery" ? <Bike className="h-4 w-4" /> : <Store className="h-4 w-4" />}
                     </span>
                     <div>
-                      <p className="font-mono text-xs font-semibold text-acai-400">
+                      <p className="font-mono text-xs font-semibold text-acai-400 flex items-center gap-2">
                         #{order.id.slice(-6).toUpperCase()}
+                        {order.scheduledTo && (
+                          <span className="flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
+                            <Clock className="h-3 w-3" /> {order.scheduledTo}
+                          </span>
+                        )}
+                        {order.rating && (
+                          <span className="flex items-center gap-0.5 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
+                            <Star className="h-3 w-3 fill-amber-500 text-amber-500" /> {order.rating}
+                          </span>
+                        )}
                       </p>
                       <p className="text-sm font-semibold text-acai-900">{order.customerName}</p>
                     </div>
@@ -167,6 +237,18 @@ export default function AdminOrdersPage() {
                         Pagamento: <span className="font-medium">{PAYMENT_METHOD_LABEL[order.paymentMethod]}</span>
                         {order.changeFor ? ` (troco para ${formatCurrency(order.changeFor)})` : ""}
                       </p>
+                      
+                      {order.rating && (
+                        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                          <p className="text-xs font-bold text-amber-900 mb-1">Avaliação do cliente</p>
+                          <div className="flex items-center gap-1">
+                            {[1,2,3,4,5].map(star => (
+                              <Star key={star} className={`h-4 w-4 ${order.rating! >= star ? 'fill-amber-500 text-amber-500' : 'text-amber-200'}`} />
+                            ))}
+                          </div>
+                          {order.feedback && <p className="mt-1 text-sm text-amber-800 italic">"{order.feedback}"</p>}
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-4">
@@ -179,6 +261,12 @@ export default function AdminOrdersPage() {
                           <span>Entrega</span>
                           <span>{formatCurrency(order.deliveryFee)}</span>
                         </div>
+                        {order.discount > 0 && (
+                          <div className="flex justify-between text-emerald-600">
+                            <span>Desconto</span>
+                            <span>-{formatCurrency(order.discount)}</span>
+                          </div>
+                        )}
                         <div className="mt-1 flex justify-between border-t border-acai-100 pt-1 font-bold text-acai-900">
                           <span>Total</span>
                           <span>{formatCurrency(order.total)}</span>

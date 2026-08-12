@@ -64,7 +64,7 @@ export function Hero() {
       </div>
 
       <svg
-        className="relative block w-full text-cream"
+        className="relative block w-full text-cream transition-colors duration-300 dark:text-acai-950"
         viewBox="0 0 1440 60"
         fill="currentColor"
         preserveAspectRatio="none"

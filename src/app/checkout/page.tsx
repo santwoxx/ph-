@@ -12,6 +12,9 @@ import {
   QrCode,
   CreditCard,
   CheckCircle2,
+  Clock,
+  Tag,
+  MapPin,
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/Button";
@@ -19,10 +22,11 @@ import { Input, Textarea } from "@/components/ui/Input";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useCartStore } from "@/store/cart";
-import { getUserProfile } from "@/lib/data/users";
+import { getUserProfile, updateUserProfile } from "@/lib/data/users";
 import { createOrder } from "@/lib/data/orders";
+import { getCoupon } from "@/lib/data/coupons";
 import { formatCurrency } from "@/lib/format";
-import type { DeliveryType, PaymentMethod } from "@/lib/types";
+import type { DeliveryType, PaymentMethod, Coupon, OrderAddress } from "@/lib/types";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -34,16 +38,30 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("pix");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  
+  // Addresses
+  const [savedAddresses, setSavedAddresses] = useState<(OrderAddress & { tag: string })[]>([]);
+  const [selectedAddressIndex, setSelectedAddressIndex] = useState<number | "new">("new");
   const [street, setStreet] = useState("");
   const [number, setNumber] = useState("");
   const [district, setDistrict] = useState("");
   const [city, setCity] = useState("");
   const [complement, setComplement] = useState("");
   const [reference, setReference] = useState("");
+  const [saveAddress, setSaveAddress] = useState(false);
+  const [saveAddressTag, setSaveAddressTag] = useState("Casa");
+
   const [changeFor, setChangeFor] = useState("");
   const [notes, setNotes] = useState("");
+  const [scheduledTo, setScheduledTo] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
+  const [placedOrderDetails, setPlacedOrderDetails] = useState<any>(null);
+
+  // Coupons
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
+  const [couponError, setCouponError] = useState("");
+  const [loadingCoupon, setLoadingCoupon] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -52,16 +70,94 @@ export default function CheckoutPage() {
       if (cancelled) return;
       setName(profile?.name || user.displayName || "");
       setPhone(profile?.phone || "");
+      if (profile?.addresses && profile.addresses.length > 0) {
+        setSavedAddresses(profile.addresses);
+        handleSelectAddress(0, profile.addresses);
+      }
     });
     return () => {
       cancelled = true;
     };
   }, [user]);
 
+  function handleSelectAddress(index: number | "new", addressesList = savedAddresses) {
+    setSelectedAddressIndex(index);
+    if (index !== "new" && addressesList[index]) {
+      const addr = addressesList[index];
+      setStreet(addr.street);
+      setNumber(addr.number);
+      setDistrict(addr.district);
+      setCity(addr.city);
+      setComplement(addr.complement || "");
+      setReference(addr.reference || "");
+    } else {
+      setStreet("");
+      setNumber("");
+      setDistrict("");
+      setCity("");
+      setComplement("");
+      setReference("");
+    }
+  }
+
   const sub = subtotal();
   const deliveryFee = deliveryType === "delivery" ? settings.deliveryFee : 0;
-  const total = sub + deliveryFee;
+  
+  let discountAmount = 0;
+  if (appliedCoupon) {
+    if (appliedCoupon.type === "percentage") {
+      discountAmount = (sub * appliedCoupon.value) / 100;
+    } else {
+      discountAmount = appliedCoupon.value;
+    }
+    if (discountAmount > sub) discountAmount = sub;
+  }
+
+  const total = sub + deliveryFee - discountAmount;
   const belowMinimum = sub < settings.minOrder;
+
+  async function handleApplyCoupon() {
+    setCouponError("");
+    if (!couponCode.trim()) {
+      setAppliedCoupon(null);
+      return;
+    }
+    setLoadingCoupon(true);
+    try {
+      const coupon = await getCoupon(couponCode);
+      if (!coupon) {
+        setCouponError("Cupom inválido.");
+        setAppliedCoupon(null);
+        return;
+      }
+      if (!coupon.active) {
+        setCouponError("Este cupom não está mais ativo.");
+        setAppliedCoupon(null);
+        return;
+      }
+      if (coupon.minOrder && sub < coupon.minOrder) {
+        setCouponError(`Pedido mínimo para este cupom é ${formatCurrency(coupon.minOrder)}`);
+        setAppliedCoupon(null);
+        return;
+      }
+      setAppliedCoupon(coupon);
+      setCouponError("");
+      toast.success("Cupom aplicado!");
+    } catch (err) {
+      console.error(err);
+      setCouponError("Erro ao verificar cupom.");
+    } finally {
+      setLoadingCoupon(false);
+    }
+  }
+
+  // Se o usuário mexer no carrinho e ficar abaixo do mínimo do cupom
+  useEffect(() => {
+    if (appliedCoupon && appliedCoupon.minOrder && sub < appliedCoupon.minOrder) {
+      setAppliedCoupon(null);
+      toast.error("O cupom foi removido pois o carrinho não atinge o valor mínimo.");
+    }
+  }, [sub, appliedCoupon]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -87,27 +183,38 @@ export default function CheckoutPage() {
         };
       });
 
-      const ref = await createOrder({
+      const orderAddress = deliveryType === "delivery"
+        ? { street, number, district, city, complement, reference }
+        : null;
+
+      if (deliveryType === "delivery" && saveAddress && selectedAddressIndex === "new") {
+        const newAddress = { ...orderAddress!, tag: saveAddressTag || "Casa" };
+        const newAddressesList = [...savedAddresses, newAddress];
+        await updateUserProfile(user.uid, { addresses: newAddressesList });
+        setSavedAddresses(newAddressesList);
+      }
+
+      const orderData = {
         customerUid: user.uid,
         customerName: name,
         customerPhone: phone,
         customerEmail: user.email || "",
         deliveryType,
-        address:
-          deliveryType === "delivery"
-            ? { street, number, district, city, complement, reference }
-            : null,
+        address: orderAddress,
         items: orderItems,
         subtotal: sub,
         deliveryFee,
-        discount: 0,
+        discount: discountAmount,
         total,
         paymentMethod,
         changeFor: paymentMethod === "dinheiro" && changeFor ? Number(changeFor) : null,
         notes,
-      });
+        scheduledTo: scheduledTo || undefined,
+      };
 
-      setPlacedOrderId(ref.id);
+      const ref = await createOrder(orderData);
+
+      setPlacedOrderDetails({ id: ref.id, ...orderData });
       clear();
       toast.success("Pedido enviado com sucesso!");
     } catch (err) {
@@ -118,27 +225,50 @@ export default function CheckoutPage() {
     }
   }
 
-  if (placedOrderId) {
+  if (placedOrderDetails) {
+    const wppNumber = settings.whatsapp.replace(/\D/g, "");
+    
+    let wppText = `Olá, vim pelo App! Acabei de fazer o pedido *#${placedOrderDetails.id.slice(-6).toUpperCase()}*.\n\n`;
+    wppText += `*Resumo:*\n`;
+    placedOrderDetails.items.forEach((i: any) => {
+      wppText += `- ${i.qty}x ${i.name} (${i.size})\n`;
+      if (i.extras.length > 0) wppText += `  + ${i.extras.map((e:any) => e.name).join(", ")}\n`;
+    });
+    wppText += `\n*Total:* ${formatCurrency(placedOrderDetails.total)}`;
+    if (placedOrderDetails.discount > 0) {
+      wppText += ` (Desconto: -${formatCurrency(placedOrderDetails.discount)})`;
+    }
+    wppText += `\n*Pagamento:* ${placedOrderDetails.paymentMethod}`;
+    if (placedOrderDetails.changeFor) wppText += ` (Troco para ${formatCurrency(placedOrderDetails.changeFor)})`;
+    if (placedOrderDetails.scheduledTo) wppText += `\n*Agendado para:* ${placedOrderDetails.scheduledTo}`;
+    if (placedOrderDetails.deliveryType === "delivery") {
+      wppText += `\n*Entrega:* ${placedOrderDetails.address.street}, ${placedOrderDetails.address.number}`;
+    } else {
+      wppText += `\n*Retirada na loja*`;
+    }
+    if (placedOrderDetails.notes) wppText += `\n*Obs:* ${placedOrderDetails.notes}`;
+    wppText += `\n\nAguardando confirmação! Obrigado.`;
+
+    const wppLink = `https://wa.me/55${wppNumber}?text=${encodeURIComponent(wppText)}`;
+
     return (
       <div className="min-h-screen bg-cream">
         <Header />
-        <div className="container-app flex flex-col items-center justify-center py-24 text-center">
-          <CheckCircle2 className="h-20 w-20 text-emerald-500" />
+        <div className="container-app flex flex-col items-center justify-center py-24 text-center animate-fade-in">
+          <CheckCircle2 className="h-20 w-20 text-emerald-500 animate-scale-in" />
           <h1 className="mt-6 font-display text-2xl font-bold text-acai-950">
             Pedido enviado!
           </h1>
           <p className="mt-2 max-w-sm text-sm text-acai-500">
-            Recebemos seu pedido <span className="font-mono font-semibold">#{placedOrderId.slice(-6).toUpperCase()}</span> e
-            já vamos começar a preparar. Acompanhe o status em &quot;Meus pedidos&quot;.
+            Recebemos seu pedido <span className="font-mono font-semibold">#{placedOrderDetails.id.slice(-6).toUpperCase()}</span> e
+            já vamos começar a preparar.
           </p>
-          <div className="mt-8 flex gap-3">
+          <div className="mt-8 flex flex-col sm:flex-row gap-3">
+            <a href={wppLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-6 py-3 font-semibold text-white transition hover:bg-emerald-600 shadow-lg shadow-emerald-500/30">
+              Acompanhar pelo WhatsApp
+            </a>
             <Link href="/meus-pedidos">
-              <Button size="lg">Acompanhar pedido</Button>
-            </Link>
-            <Link href="/">
-              <Button variant="outline" size="lg">
-                Voltar ao cardápio
-              </Button>
+              <Button variant="outline" size="lg">Meus pedidos</Button>
             </Link>
           </div>
         </div>
@@ -223,6 +353,23 @@ export default function CheckoutPage() {
                   <span className="text-sm font-semibold text-acai-800">Retirar na loja</span>
                 </button>
               </div>
+
+              <div className="mt-6 border-t border-acai-50 pt-5">
+                <h3 className="mb-3 text-sm font-bold text-acai-900">Agendar horário (Opcional)</h3>
+                <div className="flex items-center gap-3">
+                  <Clock className="h-5 w-5 text-acai-400" />
+                  <div className="flex-1">
+                    <Input
+                      type="time"
+                      label=""
+                      placeholder="O mais rápido possível"
+                      value={scheduledTo}
+                      onChange={(e) => setScheduledTo(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <p className="mt-1 text-xs text-acai-400 ml-8">Se vazio, enviaremos o mais rápido possível.</p>
+              </div>
             </section>
 
             <section className="rounded-2xl border border-acai-100 bg-white p-5 sm:p-6">
@@ -246,10 +393,43 @@ export default function CheckoutPage() {
 
             {deliveryType === "delivery" && (
               <section className="rounded-2xl border border-acai-100 bg-white p-5 sm:p-6">
-                <h2 className="font-display text-base font-bold text-acai-950">
+                <h2 className="font-display text-base font-bold text-acai-950 mb-3">
                   Endereço de entrega
                 </h2>
-                <div className="mt-3 grid gap-4 sm:grid-cols-[2fr_1fr]">
+
+                {savedAddresses.length > 0 && (
+                  <div className="mb-5 flex gap-2 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {savedAddresses.map((addr, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => handleSelectAddress(i)}
+                        className={`flex shrink-0 flex-col items-start rounded-xl border-2 px-4 py-3 text-left transition ${
+                          selectedAddressIndex === i ? "border-acai-600 bg-acai-50" : "border-acai-100 bg-white"
+                        }`}
+                      >
+                        <span className="flex items-center gap-1.5 text-sm font-bold text-acai-900">
+                          <MapPin className="h-3.5 w-3.5 text-acai-500" />
+                          {addr.tag}
+                        </span>
+                        <span className="mt-1 text-xs text-acai-500 max-w-[150px] truncate">
+                          {addr.street}, {addr.number}
+                        </span>
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => handleSelectAddress("new")}
+                      className={`flex shrink-0 items-center justify-center rounded-xl border-2 border-dashed px-4 py-3 text-sm font-semibold transition ${
+                        selectedAddressIndex === "new" ? "border-acai-600 bg-acai-50 text-acai-700" : "border-acai-200 text-acai-500 hover:bg-acai-50"
+                      }`}
+                    >
+                      + Novo endereço
+                    </button>
+                  </div>
+                )}
+
+                <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
                   <Input
                     label="Rua"
                     required
@@ -289,6 +469,29 @@ export default function CheckoutPage() {
                     onChange={(e) => setReference(e.target.value)}
                   />
                 </div>
+
+                {selectedAddressIndex === "new" && (
+                  <div className="mt-5 flex items-center gap-3 rounded-lg bg-acai-50 p-3">
+                    <label className="flex items-center gap-2 cursor-pointer text-sm font-medium text-acai-800">
+                      <input
+                        type="checkbox"
+                        checked={saveAddress}
+                        onChange={(e) => setSaveAddress(e.target.checked)}
+                        className="h-4 w-4 rounded border-acai-300 text-acai-600 focus:ring-acai-500"
+                      />
+                      Salvar este endereço para a próxima vez
+                    </label>
+                    {saveAddress && (
+                      <input
+                        type="text"
+                        placeholder="Nome (Ex: Trabalho)"
+                        className="flex-1 rounded-md border border-acai-200 px-3 py-1.5 text-sm outline-none focus:border-acai-500 focus:ring-1 focus:ring-acai-500"
+                        value={saveAddressTag}
+                        onChange={(e) => setSaveAddressTag(e.target.value)}
+                      />
+                    )}
+                  </div>
+                )}
               </section>
             )}
 
@@ -363,6 +566,33 @@ export default function CheckoutPage() {
                 </div>
               ))}
             </div>
+
+            <div className="border-t border-acai-100 pt-4">
+              <label className="mb-2 block text-xs font-semibold text-acai-900">Cupom de desconto</label>
+              <div className="flex items-start gap-2">
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    placeholder="Ex: BEMVINDO10"
+                    disabled={Boolean(appliedCoupon)}
+                    value={appliedCoupon ? appliedCoupon.id : couponCode}
+                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                    className="w-full rounded-xl border border-acai-200 bg-white px-3 py-2 text-sm uppercase outline-none focus:border-acai-500 focus:ring-1 focus:ring-acai-500 disabled:bg-acai-50 disabled:text-acai-500"
+                  />
+                  {couponError && <p className="mt-1 text-xs text-red-500">{couponError}</p>}
+                </div>
+                {appliedCoupon ? (
+                  <Button type="button" variant="outline" onClick={() => { setAppliedCoupon(null); setCouponCode(""); }}>
+                    Remover
+                  </Button>
+                ) : (
+                  <Button type="button" variant="outline" onClick={handleApplyCoupon} loading={loadingCoupon} disabled={!couponCode.trim()}>
+                    Aplicar
+                  </Button>
+                )}
+              </div>
+            </div>
+
             <div className="space-y-1.5 border-t border-acai-100 pt-3 text-sm">
               <div className="flex justify-between text-acai-500">
                 <span>Subtotal</span>
@@ -372,6 +602,12 @@ export default function CheckoutPage() {
                 <span>Entrega</span>
                 <span>{deliveryFee > 0 ? formatCurrency(deliveryFee) : "Grátis"}</span>
               </div>
+              {discountAmount > 0 && (
+                <div className="flex justify-between text-emerald-600 font-medium">
+                  <span className="flex items-center gap-1"><Tag className="h-3 w-3" /> Desconto</span>
+                  <span>- {formatCurrency(discountAmount)}</span>
+                </div>
+              )}
               <div className="flex justify-between border-t border-acai-100 pt-2 font-display text-lg font-bold text-acai-950">
                 <span>Total</span>
                 <span>{formatCurrency(total)}</span>

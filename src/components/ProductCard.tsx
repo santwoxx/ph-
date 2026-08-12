@@ -21,9 +21,9 @@ export function ProductCard({
     <button
       onClick={() => onSelect(product)}
       disabled={!product.available}
-      className="group relative flex flex-col overflow-hidden rounded-2xl border border-acai-100 bg-white text-left shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-soft disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+      className="group relative flex flex-col overflow-hidden rounded-2xl border border-acai-100 bg-white text-left shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-soft disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 dark:border-acai-800 dark:bg-acai-900 dark:shadow-none dark:hover:shadow-soft"
     >
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-acai-50">
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-acai-50 dark:bg-acai-950">
         {product.imageUrl ? (
           <Image
             src={product.imageUrl}
@@ -50,14 +50,14 @@ export function ProductCard({
       </div>
 
       <div className="flex flex-1 flex-col gap-1.5 p-4">
-        <h3 className="font-display text-base font-bold text-acai-950">{product.name}</h3>
-        <p className="line-clamp-2 text-sm text-acai-400">{product.description}</p>
+        <h3 className="font-display text-base font-bold text-acai-950 dark:text-white">{product.name}</h3>
+        <p className="line-clamp-2 text-sm text-acai-400 dark:text-acai-300">{product.description}</p>
         <div className="mt-auto flex items-center justify-between pt-3">
           <div>
-            <span className="block text-[11px] font-medium uppercase tracking-wide text-acai-300">
+            <span className="block text-[11px] font-medium uppercase tracking-wide text-acai-300 dark:text-acai-400">
               {product.sizes.length > 0 ? "a partir de" : "preço"}
             </span>
-            <span className="font-display text-lg font-extrabold text-acai-700">
+            <span className="font-display text-lg font-extrabold text-acai-700 dark:text-acai-200">
               {formatCurrency(startingPrice)}
             </span>
           </div>
@@ -67,5 +67,28 @@ export function ProductCard({
         </div>
       </div>
     </button>
+  );
+}
+
+export function ProductSkeleton() {
+  return (
+    <div className="flex flex-col overflow-hidden rounded-2xl border border-acai-100 bg-white text-left shadow-card dark:border-acai-800 dark:bg-acai-900">
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-acai-50 dark:bg-acai-950">
+        <div className="h-full w-full animate-pulse bg-acai-100/50 dark:bg-acai-800/50" />
+      </div>
+      <div className="flex flex-1 flex-col gap-2 p-4">
+        <div className="h-5 w-3/4 animate-pulse rounded bg-acai-100/50 dark:bg-acai-800/50" />
+        <div className="mt-1 h-3 w-full animate-pulse rounded bg-acai-100/50 dark:bg-acai-800/50" />
+        <div className="h-3 w-2/3 animate-pulse rounded bg-acai-100/50 dark:bg-acai-800/50" />
+        
+        <div className="mt-auto flex items-center justify-between pt-3">
+          <div className="space-y-1">
+            <div className="h-2.5 w-16 animate-pulse rounded bg-acai-100/50 dark:bg-acai-800/50" />
+            <div className="h-5 w-20 animate-pulse rounded bg-acai-100/50 dark:bg-acai-800/50" />
+          </div>
+          <div className="h-9 w-9 animate-pulse rounded-full bg-acai-100/50 dark:bg-acai-800/50" />
+        </div>
+      </div>
+    </div>
   );
 }

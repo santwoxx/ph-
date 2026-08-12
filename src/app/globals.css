@@ -27,8 +27,7 @@ html {
 }
 
 body {
-  background-color: #fff8f1;
-  color: #2a0e48;
+  @apply bg-cream text-acai-950 transition-colors duration-300 dark:bg-acai-950 dark:text-cream;
 }
 
 .container-app {

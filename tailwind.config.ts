@@ -48,6 +48,7 @@ const config: Config = {
         "fade-up": "fadeUp .5s ease forwards",
         "scale-in": "scaleIn .2s ease forwards",
         float: "float 6s ease-in-out infinite",
+        "cart-bump": "cartBump .3s ease-in-out",
       },
       keyframes: {
         fadeUp: {
@@ -61,6 +62,11 @@ const config: Config = {
         float: {
           "0%, 100%": { transform: "translateY(0px)" },
           "50%": { transform: "translateY(-10px)" },
+        },
+        cartBump: {
+          "0%": { transform: "scale(1)" },
+          "50%": { transform: "scale(1.25)" },
+          "100%": { transform: "scale(1)" },
         },
       },
     },

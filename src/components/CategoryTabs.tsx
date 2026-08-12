@@ -12,7 +12,7 @@ export function CategoryTabs({
   onSelect: (category: string) => void;
 }) {
   return (
-    <div className="sticky top-16 z-30 border-b border-acai-100/60 bg-cream/90 py-3 backdrop-blur sm:top-20">
+    <div className="sticky top-16 z-30 border-b border-acai-100/60 bg-cream/90 py-3 backdrop-blur dark:border-acai-800/60 dark:bg-acai-950/90 sm:top-20">
       <div className="container-app">
         <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {categories.map((cat) => (
@@ -23,7 +23,7 @@ export function CategoryTabs({
                 "shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-all",
                 active === cat
                   ? "bg-acai-gradient text-white shadow-soft"
-                  : "bg-white text-acai-600 ring-1 ring-acai-100 hover:ring-acai-300"
+                  : "bg-white text-acai-600 ring-1 ring-acai-100 hover:ring-acai-300 dark:bg-acai-900 dark:text-acai-300 dark:ring-acai-800 dark:hover:ring-acai-600"
               )}
             >
               {cat}

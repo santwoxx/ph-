@@ -5,10 +5,10 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Hero } from "@/components/Hero";
 import { CategoryTabs } from "@/components/CategoryTabs";
-import { ProductCard } from "@/components/ProductCard";
+import { ProductCard, ProductSkeleton } from "@/components/ProductCard";
 import { ProductModal } from "@/components/ProductModal";
 import { CartDrawer } from "@/components/CartDrawer";
-import { Spinner } from "@/components/ui/Spinner";
+
 import { subscribeToProducts } from "@/lib/data/products";
 import { useSettings } from "@/context/SettingsContext";
 import type { Product } from "@/lib/types";
@@ -19,6 +19,21 @@ export default function HomePage() {
   const [products, setProducts] = useState<Product[] | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>("Todos");
   const [selected, setSelected] = useState<Product | null>(null);
+
+  const isStoreOpen = useMemo(() => {
+    if (!settings.isOpen) return false;
+    try {
+      const regex = /(\d{1,2})h(?: \d{2}m)? às (\d{1,2})h/i;
+      const match = settings.openingHours.match(regex);
+      if (match) {
+        const start = parseInt(match[1], 10);
+        const end = parseInt(match[2], 10);
+        const now = new Date().getHours();
+        if (now < start || now >= end) return false;
+      }
+    } catch (e) {}
+    return true;
+  }, [settings.isOpen, settings.openingHours]);
 
   useEffect(() => {
     const unsub = subscribeToProducts(setProducts, () => setProducts([]));
@@ -40,8 +55,13 @@ export default function HomePage() {
   }, [products, activeCategory]);
 
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="min-h-screen bg-cream dark:bg-acai-950">
       <Header />
+      {!isStoreOpen && (
+        <div className="bg-red-500 py-2.5 text-center text-sm font-medium text-white shadow dark:bg-red-900">
+          Loja fechada no momento. Você ainda pode ver nosso cardápio!
+        </div>
+      )}
       <Hero />
 
       <main id="cardapio" className="relative">
@@ -49,12 +69,16 @@ export default function HomePage() {
 
         <div className="container-app py-10 sm:py-14">
           {products === null ? (
-            <Spinner label="Carregando cardápio..." />
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4 xl:grid-cols-5">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <ProductSkeleton key={i} />
+              ))}
+            </div>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
-              <PackageSearch className="h-14 w-14 text-acai-200" />
-              <p className="font-semibold text-acai-800">Nenhum produto por aqui ainda</p>
-              <p className="text-sm text-acai-400">
+              <PackageSearch className="h-14 w-14 text-acai-200 dark:text-acai-700" />
+              <p className="font-semibold text-acai-800 dark:text-acai-100">Nenhum produto por aqui ainda</p>
+              <p className="text-sm text-acai-400 dark:text-acai-400">
                 Assim que os produtos forem cadastrados, eles aparecem aqui automaticamente.
               </p>
             </div>

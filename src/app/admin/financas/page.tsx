@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import toast from "react-hot-toast";
-import { Plus, Trash2, TrendingUp, TrendingDown, PiggyBank, Receipt } from "lucide-react";
+import { Plus, Trash2, TrendingUp, TrendingDown, PiggyBank, Receipt, Trophy } from "lucide-react";
 import {
   ResponsiveContainer,
   BarChart,
@@ -82,6 +82,29 @@ export default function AdminFinancePage() {
     return orders.filter(
       (o) => o.status !== "cancelled" && monthKey(new Date(o.createdAt)) === currentMonthKey
     ).length;
+  }, [orders, currentMonthKey]);
+
+  const topProducts = useMemo(() => {
+    if (!orders) return [];
+    
+    const productStats: Record<string, { qty: number; revenue: number }> = {};
+    
+    orders
+      .filter((o) => o.status !== "cancelled" && monthKey(new Date(o.createdAt)) === currentMonthKey)
+      .forEach((o) => {
+        o.items.forEach(item => {
+          if (!productStats[item.name]) {
+            productStats[item.name] = { qty: 0, revenue: 0 };
+          }
+          productStats[item.name].qty += item.qty;
+          productStats[item.name].revenue += item.lineTotal;
+        });
+      });
+      
+    return Object.entries(productStats)
+      .map(([name, stats]) => ({ name, ...stats }))
+      .sort((a, b) => b.qty - a.qty)
+      .slice(0, 5);
   }, [orders, currentMonthKey]);
 
   const chartData = useMemo(() => {
@@ -177,28 +200,57 @@ export default function AdminFinancePage() {
             <StatCard label="Pedidos válidos no mês" value={String(monthOrdersCount)} icon={Receipt} tone="acai" />
           </div>
 
-          <div className="rounded-2xl border border-acai-100 bg-white p-5 shadow-card">
-            <h2 className="font-display text-base font-bold text-acai-950">
-              Receita x Despesas — últimos 6 meses
-            </h2>
-            <div className="mt-4 h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ left: -20, right: 10, top: 10 }}>
-                  <CartesianGrid vertical={false} stroke="#f0e6fa" />
-                  <XAxis dataKey="label" tick={{ fontSize: 12, fill: "#9b7cb8" }} axisLine={false} tickLine={false} />
-                  <YAxis
-                    tick={{ fontSize: 12, fill: "#9b7cb8" }}
-                    axisLine={false}
-                    tickLine={false}
-                    tickFormatter={(v) => `R$${v}`}
-                    width={60}
-                  />
-                  <Tooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: 12, border: "1px solid #e9d9f8" }} />
-                  <Legend />
-                  <Bar dataKey="receita" name="Receita" fill="#7f2fc9" radius={[6, 6, 0, 0]} />
-                  <Bar dataKey="despesas" name="Despesas" fill="#d43d84" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+          <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+            <div className="rounded-2xl border border-acai-100 bg-white p-5 shadow-card">
+              <h2 className="font-display text-base font-bold text-acai-950">
+                Receita x Despesas — últimos 6 meses
+              </h2>
+              <div className="mt-4 h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ left: -20, right: 10, top: 10 }}>
+                    <CartesianGrid vertical={false} stroke="#f0e6fa" />
+                    <XAxis dataKey="label" tick={{ fontSize: 12, fill: "#9b7cb8" }} axisLine={false} tickLine={false} />
+                    <YAxis
+                      tick={{ fontSize: 12, fill: "#9b7cb8" }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(v) => `R$${v}`}
+                      width={60}
+                    />
+                    <Tooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: 12, border: "1px solid #e9d9f8" }} />
+                    <Legend />
+                    <Bar dataKey="receita" name="Receita" fill="#7f2fc9" radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="despesas" name="Despesas" fill="#d43d84" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-acai-100 bg-white p-5 shadow-card h-fit">
+              <h2 className="font-display text-base font-bold text-acai-950 flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-gold" />
+                Top Produtos do Mês
+              </h2>
+              {topProducts.length === 0 ? (
+                <p className="mt-4 text-sm text-acai-400">Nenhuma venda registrada neste mês.</p>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  {topProducts.map((p, index) => (
+                    <div key={p.name} className="flex items-center justify-between rounded-xl bg-acai-50 px-4 py-3 border border-acai-100/50">
+                      <div className="flex items-center gap-3">
+                        <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white shadow-soft ${index === 0 ? "bg-gold" : index === 1 ? "bg-gray-400" : index === 2 ? "bg-amber-600" : "bg-acai-300"}`}>
+                          {index + 1}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-acai-900">{p.name}</p>
+                          <p className="text-xs font-semibold text-acai-500">{p.qty} unid. vendidas</p>
+                        </div>
+                      </div>
+                      <p className="text-sm font-bold text-acai-700">{formatCurrency(p.revenue)}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 

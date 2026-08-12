@@ -31,3 +31,6 @@ next-env.d.ts
 # gerados automaticamente pelo `next dev` (Next.js 16) para orientar agentes de IA
 AGENTS.md
 CLAUDE.md
+
+.vercel
+.env*
