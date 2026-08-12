@@ -1,0 +1,92 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- Helpers ----------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function authEmail() {
+      // e-mail do usuário logado, sempre normalizado em minúsculas
+      return request.auth.token.email.lower();
+    }
+
+    // Único ponto de verdade: um usuário só é admin se existir um
+    // documento admins/{email-em-minusculo}. É este documento que
+    // decide quem consegue acessar o painel administrativo.
+    function isAdmin() {
+      return isSignedIn() &&
+        request.auth.token.email != null &&
+        exists(/databases/$(database)/documents/admins/$(authEmail()));
+    }
+
+    // ---------- admins ----------
+    // Coleção que funciona como "allowlist" de administradores.
+    // Ninguém consegue se auto-promover: a escrita só é permitida
+    // para quem já é admin (o primeiro admin é criado via script
+    // com a Service Account, fora do alcance destas regras).
+    match /admins/{email} {
+      allow get: if isSignedIn() && authEmail() == email;
+      allow list: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // ---------- settings ----------
+    // Dados públicos da loja (nome, logo, horário, taxa de entrega,
+    // categorias, chave pix). Leitura livre para montar o cardápio,
+    // escrita restrita ao admin.
+    match /settings/{docId} {
+      allow get: if true;
+      allow write: if isAdmin();
+    }
+
+    // ---------- products ----------
+    // Cardápio é público para leitura. Só admin cria/edita/exclui
+    // produtos (inclui campo imageUrl apontando para o Storage).
+    match /products/{productId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ---------- users ----------
+    // Perfil do cliente (nome, telefone, endereços). Cada cliente só
+    // enxerga e edita o próprio documento; admin pode ler todos.
+    match /users/{uid} {
+      allow read, write: if isSignedIn() && request.auth.uid == uid;
+      allow read: if isAdmin();
+    }
+
+    // ---------- orders ----------
+    // Cliente autenticado pode criar pedidos vinculados ao próprio uid
+    // e ler apenas os seus. Alterar status, cancelar, excluir e ver
+    // todos os pedidos é exclusivo do admin (painel financeiro).
+    match /orders/{orderId} {
+      allow create: if isSignedIn() &&
+        request.resource.data.customerUid == request.auth.uid &&
+        request.resource.data.status == 'pending' &&
+        request.resource.data.total is number &&
+        request.resource.data.total > 0 &&
+        request.resource.data.items is list &&
+        request.resource.data.items.size() > 0;
+
+      allow read: if isAdmin() ||
+        (isSignedIn() && resource.data.customerUid == request.auth.uid);
+
+      allow update, delete: if isAdmin();
+    }
+
+    // ---------- expenses ----------
+    // Despesas usadas no controle financeiro (custos, compras, etc).
+    // Totalmente restrito ao admin.
+    match /expenses/{expenseId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Qualquer outra coleção não mapeada fica bloqueada por padrão.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

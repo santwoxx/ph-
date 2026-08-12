@@ -1,0 +1,40 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function authEmail() {
+      return request.auth.token.email.lower();
+    }
+
+    // Consulta a MESMA coleção "admins" do Firestore, para não existir
+    // duas listas de administradores para manter sincronizadas.
+    function isAdmin() {
+      return request.auth != null &&
+        request.auth.token.email != null &&
+        firestore.exists(/databases/(default)/documents/admins/$(authEmail()));
+    }
+
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    // Fotos dos produtos do cardápio: leitura pública, upload/edição
+    // restritos ao admin, limitados a 5MB e apenas arquivos de imagem.
+    match /products/{productId}/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin() && isImage() && request.resource.size < 5 * 1024 * 1024;
+    }
+
+    // Logo e banner da loja usados no cardápio.
+    match /settings/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin() && isImage() && request.resource.size < 5 * 1024 * 1024;
+    }
+
+    // Bloqueia qualquer outro caminho por padrão.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

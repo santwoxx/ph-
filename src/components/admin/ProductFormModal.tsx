@@ -1,0 +1,336 @@
+"use client";
+
+import { useState, type FormEvent } from "react";
+import Image from "next/image";
+import toast from "react-hot-toast";
+import { Plus, Trash2, ImagePlus, Loader2 } from "lucide-react";
+import { Modal } from "@/components/ui/Modal";
+import { Button } from "@/components/ui/Button";
+import { Input, Textarea } from "@/components/ui/Input";
+import { createProduct, updateProduct } from "@/lib/data/products";
+import { uploadProductImage, deleteImageByPath } from "@/lib/data/upload";
+import type { Product, ProductSize, ProductExtra } from "@/lib/types";
+
+function tempId() {
+  return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+}
+
+export function ProductFormModal({
+  open,
+  onClose,
+  product,
+  categories,
+}: {
+  open: boolean;
+  onClose: () => void;
+  product: Product | null;
+  categories: string[];
+}) {
+  const isEdit = Boolean(product);
+
+  // O formulário parte direto dos dados do produto (ou dos valores padrão de
+  // "novo produto"). Não precisa de useEffect para "resetar": o componente
+  // pai remonta este modal com uma `key` diferente sempre que o produto em
+  // edição muda ou o modal é reaberto, então esses valores iniciais já saem
+  // corretos a cada abertura.
+  const [name, setName] = useState(product?.name ?? "");
+  const [description, setDescription] = useState(product?.description ?? "");
+  const [usingCustomCategory, setUsingCustomCategory] = useState(
+    Boolean(product && !categories.includes(product.category))
+  );
+  const [category, setCategory] = useState(
+    product && categories.includes(product.category) ? product.category : categories[0] ?? "Açaí"
+  );
+  const [customCategory, setCustomCategory] = useState(
+    product && !categories.includes(product.category) ? product.category : ""
+  );
+  const [basePrice, setBasePrice] = useState(String(product?.basePrice ?? 0));
+  const [sizes, setSizes] = useState<ProductSize[]>(
+    product ? product.sizes ?? [] : [{ label: "300ml", price: 12 }]
+  );
+  const [extras, setExtras] = useState<ProductExtra[]>(product?.extras ?? []);
+  const [available, setAvailable] = useState(product?.available ?? true);
+  const [featured, setFeatured] = useState(product?.featured ?? false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>(product?.imageUrl ?? "");
+  const [saving, setSaving] = useState(false);
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("A imagem deve ter até 5MB.");
+      return;
+    }
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  }
+
+  function addSize() {
+    setSizes((s) => [...s, { label: "", price: 0 }]);
+  }
+  function updateSize(i: number, patch: Partial<ProductSize>) {
+    setSizes((s) => s.map((item, idx) => (idx === i ? { ...item, ...patch } : item)));
+  }
+  function removeSize(i: number) {
+    setSizes((s) => s.filter((_, idx) => idx !== i));
+  }
+
+  function addExtra() {
+    setExtras((s) => [...s, { name: "", price: 0 }]);
+  }
+  function updateExtra(i: number, patch: Partial<ProductExtra>) {
+    setExtras((s) => s.map((item, idx) => (idx === i ? { ...item, ...patch } : item)));
+  }
+  function removeExtra(i: number) {
+    setExtras((s) => s.filter((_, idx) => idx !== i));
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    const finalCategory = usingCustomCategory ? customCategory.trim() : category;
+    if (!name.trim() || !finalCategory) {
+      toast.error("Preencha nome e categoria.");
+      return;
+    }
+    if (sizes.length === 0 && Number(basePrice) <= 0) {
+      toast.error("Defina um preço base ou pelo menos um tamanho.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      let imageUrl = product?.imageUrl ?? "";
+      let imagePath = product?.imagePath ?? "";
+
+      if (imageFile) {
+        const folderId = product?.id ?? tempId();
+        const uploaded = await uploadProductImage(folderId, imageFile);
+        if (product?.imagePath) {
+          await deleteImageByPath(product.imagePath);
+        }
+        imageUrl = uploaded.url;
+        imagePath = uploaded.path;
+      }
+
+      const payload = {
+        name: name.trim(),
+        description: description.trim(),
+        category: finalCategory,
+        imageUrl,
+        imagePath,
+        basePrice: Number(basePrice) || 0,
+        sizes: sizes.filter((s) => s.label.trim()).map((s) => ({ ...s, price: Number(s.price) || 0 })),
+        extras: extras
+          .filter((ex) => ex.name.trim())
+          .map((ex) => ({ ...ex, price: Number(ex.price) || 0 })),
+        available,
+        featured,
+        order: product?.order ?? Date.now(),
+      };
+
+      if (isEdit && product) {
+        await updateProduct(product.id, payload);
+        toast.success("Produto atualizado!");
+      } else {
+        await createProduct(payload);
+        toast.success("Produto cadastrado!");
+      }
+      onClose();
+    } catch (err) {
+      console.error(err);
+      toast.error("Não foi possível salvar o produto.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title={isEdit ? "Editar produto" : "Novo produto"} maxWidth="max-w-2xl">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
+          <label className="group relative flex h-32 w-32 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-acai-200 bg-acai-50 transition hover:border-acai-400">
+            {imagePreview ? (
+              <Image src={imagePreview} alt="" fill className="object-cover" unoptimized />
+            ) : (
+              <span className="flex flex-col items-center gap-1 text-acai-400">
+                <ImagePlus className="h-6 w-6" />
+                <span className="text-[11px] font-medium">Adicionar foto</span>
+              </span>
+            )}
+            <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-xs font-semibold text-white opacity-0 transition group-hover:opacity-100">
+              Alterar
+            </div>
+          </label>
+
+          <div className="flex-1 space-y-4">
+            <Input label="Nome do produto" required value={name} onChange={(e) => setName(e.target.value)} />
+            <Textarea
+              label="Descrição"
+              rows={2}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <span className="mb-1.5 block text-sm font-semibold text-acai-900">Categoria</span>
+            {usingCustomCategory ? (
+              <div className="flex gap-2">
+                <Input
+                  value={customCategory}
+                  onChange={(e) => setCustomCategory(e.target.value)}
+                  placeholder="Nome da categoria"
+                />
+                <Button type="button" variant="ghost" size="sm" onClick={() => setUsingCustomCategory(false)}>
+                  Voltar
+                </Button>
+              </div>
+            ) : (
+              <select
+                value={category}
+                onChange={(e) => {
+                  if (e.target.value === "__new__") {
+                    setUsingCustomCategory(true);
+                  } else {
+                    setCategory(e.target.value);
+                  }
+                }}
+                className="w-full rounded-xl border-2 border-acai-100 bg-white px-4 py-2.5 text-sm text-acai-950 outline-none transition focus:border-acai-500 focus:ring-4 focus:ring-acai-100"
+              >
+                {categories.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+                <option value="__new__">+ Nova categoria</option>
+              </select>
+            )}
+          </div>
+
+          <Input
+            label="Preço base (usado se não houver tamanhos)"
+            type="number"
+            min={0}
+            step="0.01"
+            value={basePrice}
+            onChange={(e) => setBasePrice(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-sm font-bold text-acai-900">Tamanhos</span>
+            <Button type="button" variant="ghost" size="sm" onClick={addSize}>
+              <Plus className="h-3.5 w-3.5" /> Adicionar
+            </Button>
+          </div>
+          <div className="space-y-2">
+            {sizes.map((s, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input
+                  value={s.label}
+                  onChange={(e) => updateSize(i, { label: e.target.value })}
+                  placeholder="Ex: 500ml"
+                  className="flex-1 rounded-lg border-2 border-acai-100 px-3 py-2 text-sm outline-none focus:border-acai-400"
+                />
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={s.price}
+                  onChange={(e) => updateSize(i, { price: Number(e.target.value) })}
+                  placeholder="Preço"
+                  className="w-28 rounded-lg border-2 border-acai-100 px-3 py-2 text-sm outline-none focus:border-acai-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeSize(i)}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-acai-300 hover:bg-red-50 hover:text-red-500"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+            {sizes.length === 0 && (
+              <p className="text-xs text-acai-400">
+                Nenhum tamanho — será usado o preço base como preço único.
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div>
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-sm font-bold text-acai-900">Complementos (opcional)</span>
+            <Button type="button" variant="ghost" size="sm" onClick={addExtra}>
+              <Plus className="h-3.5 w-3.5" /> Adicionar
+            </Button>
+          </div>
+          <div className="space-y-2">
+            {extras.map((ex, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input
+                  value={ex.name}
+                  onChange={(e) => updateExtra(i, { name: e.target.value })}
+                  placeholder="Ex: Granola extra"
+                  className="flex-1 rounded-lg border-2 border-acai-100 px-3 py-2 text-sm outline-none focus:border-acai-400"
+                />
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={ex.price}
+                  onChange={(e) => updateExtra(i, { price: Number(e.target.value) })}
+                  placeholder="Preço"
+                  className="w-28 rounded-lg border-2 border-acai-100 px-3 py-2 text-sm outline-none focus:border-acai-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeExtra(i)}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-acai-300 hover:bg-red-50 hover:text-red-500"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-6">
+          <label className="flex items-center gap-2 text-sm font-medium text-acai-800">
+            <input
+              type="checkbox"
+              checked={available}
+              onChange={(e) => setAvailable(e.target.checked)}
+              className="h-4 w-4 rounded accent-acai-600"
+            />
+            Disponível no cardápio
+          </label>
+          <label className="flex items-center gap-2 text-sm font-medium text-acai-800">
+            <input
+              type="checkbox"
+              checked={featured}
+              onChange={(e) => setFeatured(e.target.checked)}
+              className="h-4 w-4 rounded accent-acai-600"
+            />
+            Destacar como &quot;Mais pedido&quot;
+          </label>
+        </div>
+
+        <div className="flex justify-end gap-3 border-t border-acai-100 pt-5">
+          <Button type="button" variant="ghost" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" loading={saving}>
+            {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+            {isEdit ? "Salvar alterações" : "Cadastrar produto"}
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
