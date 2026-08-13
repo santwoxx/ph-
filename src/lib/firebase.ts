@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp, type FirebaseOptions, type FirebaseApp } from "firebase/app";
-import { getAuth, type Auth } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, type Auth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
 import { getAnalytics, isSupported, type Analytics } from "firebase/analytics";
@@ -43,6 +43,12 @@ export const firebaseApp: FirebaseApp | undefined = canInitFirebase ? initFireba
 export const auth = (firebaseApp ? getAuth(firebaseApp) : ({} as Auth)) as Auth;
 export const db = (firebaseApp ? getFirestore(firebaseApp) : ({} as Firestore)) as Firestore;
 export const storage = (firebaseApp ? getStorage(firebaseApp) : ({} as FirebaseStorage)) as FirebaseStorage;
+
+// Único método de login do app (cliente e admin). Quem vira admin ou não é
+// decidido depois, checando a coleção `admins` no Firestore — não existe
+// nenhum cadastro de senha para gerenciar.
+export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: "select_account" });
 
 // Analytics é opcional: só existe se houver measurementId e o navegador
 // suportar (bloqueadores de anúncio, Safari com ITP etc. podem recusar).

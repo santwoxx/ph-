@@ -9,6 +9,7 @@ import { isFirebaseConfigured } from "@/lib/firebase";
 import { FirebaseSetupNotice } from "@/components/FirebaseSetupNotice";
 import { AnalyticsListener } from "@/components/AnalyticsListener";
 import { PWARegister } from "@/components/PWARegister";
+import { CompleteProfileModal } from "@/components/CompleteProfileModal";
 
 export function Providers({ children }: { children: ReactNode }) {
   if (!isFirebaseConfigured) {
@@ -23,6 +24,7 @@ export function Providers({ children }: { children: ReactNode }) {
           <AnalyticsListener />
         </Suspense>
         <PWARegister />
+        <CompleteProfileModal />
       </AuthProvider>
       <Toaster
         position="top-center"

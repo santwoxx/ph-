@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Utensils,
   ClipboardList,
+  Users,
   Wallet,
   Settings,
   LogOut,
@@ -19,6 +20,7 @@ const links = [
   { href: "/admin", label: "Visão geral", icon: LayoutDashboard, exact: true },
   { href: "/admin/produtos", label: "Produtos", icon: Utensils },
   { href: "/admin/pedidos", label: "Pedidos", icon: ClipboardList },
+  { href: "/admin/clientes", label: "Clientes", icon: Users },
   { href: "/admin/financas", label: "Finanças", icon: Wallet },
   { href: "/admin/configuracoes", label: "Configurações", icon: Settings },
 ];

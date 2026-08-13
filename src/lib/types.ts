@@ -157,6 +157,7 @@ export type UserProfile = {
   name: string;
   email: string;
   phone: string;
+  cpf?: string;
   addresses?: (OrderAddress & { tag: string })[];
   createdAt: number;
 };

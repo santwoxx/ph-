@@ -1,32 +1,29 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import toast from "react-hot-toast";
 import { ShieldCheck, ArrowLeft } from "lucide-react";
-import { auth, db } from "@/lib/firebase";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import { db } from "@/lib/firebase";
+import { useAuth } from "@/context/AuthContext";
+import { GoogleIcon } from "@/components/GoogleIcon";
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const { signInWithGoogle } = useAuth();
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
+  async function handleGoogleSignIn() {
     setLoading(true);
     try {
-      const cred = await signInWithEmailAndPassword(auth, email, password);
-      const adminSnap = await getDoc(doc(db, "admins", (cred.user.email || "").toLowerCase()));
+      const user = await signInWithGoogle();
+      const adminSnap = await getDoc(doc(db, "admins", (user.email || "").toLowerCase()));
 
       if (!adminSnap.exists()) {
-        await auth.signOut();
         toast.error("Este e-mail não tem permissão de administrador.");
+        router.push("/");
         return;
       }
 
@@ -34,14 +31,10 @@ export default function AdminLoginPage() {
       router.push("/admin");
     } catch (err) {
       const code = (err as { code?: string }).code || "";
-      if (code === "auth/invalid-credential" || code === "auth/wrong-password" || code === "auth/user-not-found") {
-        toast.error("E-mail ou senha incorretos.");
-      } else if (code === "auth/operation-not-allowed") {
-        toast.error(
-          "Login por e-mail/senha ainda não está ativado no Firebase (Authentication → Sign-in method → E-mail/senha)."
-        );
+      if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
+        // usuário só fechou o popup, sem erro pra mostrar
       } else {
-        toast.error("Não foi possível entrar. Tente novamente.");
+        toast.error("Não foi possível entrar com o Google. Tente novamente.");
       }
     } finally {
       setLoading(false);
@@ -68,26 +61,18 @@ export default function AdminLoginPage() {
           Acesso restrito a e-mails autorizados como administrador.
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          <Input
-            label="E-mail"
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="admin@suaacaiteria.com"
-          />
-          <Input
-            label="Senha"
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <Button type="submit" fullWidth size="lg" loading={loading} className="mt-2">
-            Entrar no painel
-          </Button>
-        </form>
+        <button
+          onClick={handleGoogleSignIn}
+          disabled={loading}
+          className="mt-8 flex w-full items-center justify-center gap-3 rounded-xl border-2 border-acai-100 px-4 py-3.5 text-sm font-semibold text-acai-800 transition hover:border-acai-300 hover:bg-acai-50 disabled:opacity-60"
+        >
+          <GoogleIcon className="h-5 w-5" />
+          {loading ? "Entrando..." : "Continuar com o Google"}
+        </button>
+
+        <p className="mt-5 text-xs text-acai-400">
+          Seu e-mail precisa estar cadastrado como administrador em Configurações → Administradores.
+        </p>
       </div>
     </div>
   );
