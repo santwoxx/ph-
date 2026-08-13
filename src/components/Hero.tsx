@@ -56,8 +56,17 @@ export function Hero() {
               />
             </div>
           ) : (
-            <div className="relative flex aspect-square w-full max-w-sm animate-float items-center justify-center rounded-[2.5rem] bg-white/10 text-[120px] shadow-2xl ring-4 ring-white/20 backdrop-blur">
-              🍇🥣
+            <div className="relative flex aspect-square w-full max-w-sm animate-float items-center justify-center rounded-[2.5rem] bg-white/10 shadow-2xl ring-4 ring-white/20 backdrop-blur">
+              <div className="relative h-2/3 w-2/3">
+                <Image
+                  src={settings.logoUrl || "/logo-ph.png"}
+                  alt={settings.storeName}
+                  fill
+                  sizes="(min-width: 1024px) 300px, 60vw"
+                  className="object-contain drop-shadow-2xl"
+                  priority
+                />
+              </div>
             </div>
           )}
         </div>
