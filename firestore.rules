@@ -77,6 +77,15 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // ---------- coupons ----------
+    // Cupom de desconto (código, tipo, valor, pedido mínimo). Leitura livre
+    // pra qualquer cliente logado conferir o código no checkout; só admin
+    // cria, ativa/desativa ou remove.
+    match /coupons/{code} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // ---------- expenses ----------
     // Despesas usadas no controle financeiro (custos, compras, etc).
     // Totalmente restrito ao admin.
