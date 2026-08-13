@@ -21,7 +21,8 @@ const config: Config = {
           700: "#631887",
           800: "#4f156b",
           900: "#421557",
-          950: "#2d0b40",
+          950: "#1E0930",
+          960: "#130520",
         },
         berry: {
           400: "#e35d9c",
@@ -29,7 +30,13 @@ const config: Config = {
           600: "#b52469",
         },
         cream: "#fffcf7",
-        gold: "#FFC107",
+        gold: {
+          DEFAULT: "#FFD700",
+          300: "#FCE883",
+          400: "#F4D03F",
+          500: "#FFD700",
+          600: "#D4AC0D",
+        },
       },
       fontFamily: {
         display: ["var(--font-display)", "sans-serif"],

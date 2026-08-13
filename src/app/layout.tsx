@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Poppins, Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
+import { FluidCursor } from "@/components/ui/FluidCursor";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -47,6 +48,7 @@ export default function RootLayout({
     <html lang="pt-BR" className={`${poppins.variable} ${inter.variable}`} suppressHydrationWarning>
       <body className="font-body antialiased">
         <Providers>{children}</Providers>
+        <FluidCursor />
       </body>
     </html>
   );

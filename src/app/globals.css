@@ -27,7 +27,7 @@ html {
 }
 
 body {
-  @apply bg-cream text-acai-950 transition-colors duration-300 dark:bg-acai-950 dark:text-cream;
+  @apply bg-acai-960 text-cream transition-colors duration-300;
 }
 
 .container-app {
