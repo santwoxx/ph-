@@ -10,6 +10,7 @@ export function Footer() {
     <footer className="mt-20 bg-acai-950 text-acai-100">
       <div className="container-app grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-3">
         <div>
+          <img src="/logo-ph.png" alt="Logo" className="mb-3 h-12 w-12 object-contain" />
           <p className="font-display text-xl font-bold text-white">{settings.storeName}</p>
           <p className="mt-3 max-w-xs text-sm text-acai-300">{settings.tagline}</p>
         </div>

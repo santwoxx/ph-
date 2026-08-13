@@ -36,19 +36,14 @@ export function Header() {
     <header className="sticky top-0 z-40 border-b border-acai-100/60 bg-white/85 backdrop-blur-lg dark:border-acai-800 dark:bg-acai-950/85">
       <div className="container-app flex h-16 items-center justify-between sm:h-20">
         <Link href="/" className="flex items-center gap-3">
-          {settings.logoUrl ? (
-            <Image
-              src={settings.logoUrl}
-              alt={settings.storeName}
-              width={44}
-              height={44}
-              className="h-10 w-10 rounded-full object-cover ring-2 ring-acai-100 sm:h-12 sm:w-12"
-            />
-          ) : (
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-acai-gradient text-lg sm:h-12 sm:w-12 sm:text-xl">
-              🍇
-            </span>
-          )}
+          <Image
+            src={settings.logoUrl || "/logo-ph.png"}
+            alt={settings.storeName || "Logo"}
+            width={48}
+            height={48}
+            className="h-10 w-10 object-contain sm:h-12 sm:w-12 drop-shadow-md"
+            priority
+          />
           <div className="leading-tight">
             <p className="font-display text-base font-bold text-acai-950 dark:text-white sm:text-lg">
               {settings.storeName}
