@@ -19,12 +19,14 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <AuthProvider>
-        <SettingsProvider>{children}</SettingsProvider>
-        <Suspense fallback={null}>
-          <AnalyticsListener />
-        </Suspense>
-        <PWARegister />
-        <CompleteProfileModal />
+        <SettingsProvider>
+          {children}
+          <Suspense fallback={null}>
+            <AnalyticsListener />
+          </Suspense>
+          <PWARegister />
+          <CompleteProfileModal />
+        </SettingsProvider>
       </AuthProvider>
       <Toaster
         position="top-center"

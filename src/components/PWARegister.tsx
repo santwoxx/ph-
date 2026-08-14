@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Download, X, Share } from "lucide-react";
+import Image from "next/image";
+import { useSettings } from "@/context/SettingsContext";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -13,6 +15,7 @@ export function PWARegister() {
   const [dismissed, setDismissed] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const { settings } = useSettings();
 
   useEffect(() => {
     // Registra o Service Worker
@@ -51,8 +54,14 @@ export function PWARegister() {
   return (
     <div className="fixed bottom-6 left-1/2 z-50 flex w-[calc(100%-2rem)] max-w-md -translate-x-1/2 flex-col gap-3 rounded-2xl border border-acai-100/60 bg-white/95 p-4 shadow-2xl backdrop-blur-lg animate-fade-up dark:border-acai-800/60 dark:bg-acai-950/95 sm:bottom-8">
       <div className="flex items-start gap-4">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-acai-gradient shadow-inner">
-          <span className="text-2xl">🍇</span>
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white p-1.5 shadow-inner dark:bg-acai-900 border border-acai-100 dark:border-acai-800">
+          <Image
+            src={settings.logoUrl || "/logo-ph.png"}
+            alt={settings.storeName || "Logo"}
+            width={40}
+            height={40}
+            className="h-full w-full object-contain"
+          />
         </div>
         
         <div className="flex-1 pt-0.5">
