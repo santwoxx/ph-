@@ -96,9 +96,10 @@ export function Header() {
           ) : (
             <Link
               href="/login"
-              className="hidden rounded-full border-2 border-acai-100 px-4 py-2 text-sm font-semibold text-acai-800 transition hover:border-acai-300 dark:border-acai-800 dark:text-acai-100 dark:hover:border-acai-600 sm:block"
+              className="flex items-center gap-2 rounded-full border-2 border-acai-100 bg-white px-3 py-2 text-sm font-semibold text-acai-800 transition hover:border-acai-300 dark:border-acai-800 dark:bg-acai-900 dark:text-acai-100 dark:hover:border-acai-600"
             >
-              Entrar
+              <User className="h-4 w-4" />
+              <span className="hidden sm:inline">Entrar</span>
             </Link>
           )}
 
