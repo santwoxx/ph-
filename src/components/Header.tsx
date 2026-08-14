@@ -8,6 +8,7 @@ import { useTheme } from "next-themes";
 import { useCartStore } from "@/store/cart";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
+import { isDataUrl } from "@/lib/image";
 import { NotificationBell } from "@/components/NotificationBell";
 import { checkIsStoreOpen } from "@/lib/schedule";
 
@@ -44,6 +45,7 @@ export function Header() {
             alt={settings.storeName || "Logo"}
             width={48}
             height={48}
+            unoptimized={isDataUrl(settings.logoUrl)}
             className="h-10 w-10 object-contain sm:h-12 sm:w-12 drop-shadow-md"
             priority
           />

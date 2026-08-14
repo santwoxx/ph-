@@ -32,6 +32,7 @@ export function mapProduct(id: string, data: Record<string, unknown>): Product {
     basePrice: (data.basePrice as number) ?? 0,
     sizes: (data.sizes as Product["sizes"]) ?? [],
     extras: (data.extras as Product["extras"]) ?? [],
+    extraGroups: (data.extraGroups as Product["extraGroups"]) ?? [],
     available: (data.available as boolean) ?? true,
     featured: (data.featured as boolean) ?? false,
     order: (data.order as number) ?? 0,

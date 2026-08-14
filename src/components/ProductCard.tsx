@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Plus, Flame } from "lucide-react";
 import type { Product } from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
+import { isDataUrl } from "@/lib/image";
 
 export const ProductCard = memo(function ProductCard({
   product,
@@ -31,6 +32,7 @@ export const ProductCard = memo(function ProductCard({
             alt={product.name}
             fill
             sizes="(min-width: 1280px) 22vw, (min-width: 768px) 30vw, 90vw"
+            unoptimized={isDataUrl(product.imageUrl)}
             className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (

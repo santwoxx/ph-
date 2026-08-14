@@ -5,6 +5,7 @@ import Link from "next/link";
 import { X, Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { formatCurrency } from "@/lib/format";
+import { isDataUrl } from "@/lib/image";
 import { Button } from "@/components/ui/Button";
 import { useSettings } from "@/context/SettingsContext";
 
@@ -62,7 +63,13 @@ export function CartDrawer() {
                   >
                     <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-acai-50 dark:bg-acai-900">
                       {item.imageUrl ? (
-                        <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
+                        <Image
+                          src={item.imageUrl}
+                          alt={item.name}
+                          fill
+                          unoptimized={isDataUrl(item.imageUrl)}
+                          className="object-cover"
+                        />
                       ) : (
                         <div className="flex h-full items-center justify-center text-2xl">🍨</div>
                       )}

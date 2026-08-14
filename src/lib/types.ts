@@ -9,6 +9,20 @@ export type ProductExtra = {
   available?: boolean;
 };
 
+// "Monte seu copo": grupos de complementos com regra de seleção própria,
+// no estilo do item customizável do iFood (ex.: "Escolha o creme" — até 2,
+// "Frutas" — até 3, "Coberturas" — sem limite). Cada grupo é independente do
+// `extras` legado abaixo, que continua funcionando como lista simples sem
+// limite para produtos que não usam grupos.
+export type ExtraGroup = {
+  id: string;
+  name: string;
+  required: boolean;
+  minSelect: number;
+  maxSelect: number; // 0 = sem limite de seleções no grupo
+  items: ProductExtra[];
+};
+
 export type Product = {
   id: string;
   name: string;
@@ -19,6 +33,7 @@ export type Product = {
   basePrice: number;
   sizes: ProductSize[];
   extras: ProductExtra[];
+  extraGroups: ExtraGroup[];
   available: boolean;
   featured: boolean;
   order: number;

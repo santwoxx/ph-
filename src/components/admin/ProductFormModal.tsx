@@ -3,13 +3,13 @@
 import { useState, type FormEvent } from "react";
 import Image from "next/image";
 import toast from "react-hot-toast";
-import { Plus, Trash2, ImagePlus, Loader2, Eye, EyeOff } from "lucide-react";
+import { Plus, Trash2, ImagePlus, Loader2, Eye, EyeOff, Layers } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
 import { createProduct, updateProduct } from "@/lib/data/products";
 import { uploadProductImage, deleteImageByPath } from "@/lib/data/upload";
-import type { Product, ProductSize, ProductExtra } from "@/lib/types";
+import type { Product, ProductSize, ProductExtra, ExtraGroup } from "@/lib/types";
 
 function tempId() {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
@@ -49,6 +49,7 @@ export function ProductFormModal({
     product ? product.sizes ?? [] : [{ label: "300ml", price: 12 }]
   );
   const [extras, setExtras] = useState<ProductExtra[]>(product?.extras ?? []);
+  const [extraGroups, setExtraGroups] = useState<ExtraGroup[]>(product?.extraGroups ?? []);
   const [available, setAvailable] = useState(product?.available ?? true);
   const [featured, setFeatured] = useState(product?.featured ?? false);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -84,6 +85,38 @@ export function ProductFormModal({
   }
   function removeExtra(i: number) {
     setExtras((s) => s.filter((_, idx) => idx !== i));
+  }
+
+  function addGroup() {
+    setExtraGroups((groups) => [
+      ...groups,
+      { id: tempId(), name: "", required: false, minSelect: 0, maxSelect: 1, items: [] },
+    ]);
+  }
+  function updateGroup(gi: number, patch: Partial<ExtraGroup>) {
+    setExtraGroups((groups) => groups.map((g, idx) => (idx === gi ? { ...g, ...patch } : g)));
+  }
+  function removeGroup(gi: number) {
+    setExtraGroups((groups) => groups.filter((_, idx) => idx !== gi));
+  }
+  function addGroupItem(gi: number) {
+    setExtraGroups((groups) =>
+      groups.map((g, idx) => (idx === gi ? { ...g, items: [...g.items, { name: "", price: 0 }] } : g))
+    );
+  }
+  function updateGroupItem(gi: number, ii: number, patch: Partial<ProductExtra>) {
+    setExtraGroups((groups) =>
+      groups.map((g, idx) =>
+        idx === gi
+          ? { ...g, items: g.items.map((item, iidx) => (iidx === ii ? { ...item, ...patch } : item)) }
+          : g
+      )
+    );
+  }
+  function removeGroupItem(gi: number, ii: number) {
+    setExtraGroups((groups) =>
+      groups.map((g, idx) => (idx === gi ? { ...g, items: g.items.filter((_, iidx) => iidx !== ii) } : g))
+    );
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -124,6 +157,16 @@ export function ProductFormModal({
         extras: extras
           .filter((ex) => ex.name.trim())
           .map((ex) => ({ ...ex, price: Number(ex.price) || 0 })),
+        extraGroups: extraGroups
+          .filter((g) => g.name.trim())
+          .map((g) => ({
+            ...g,
+            minSelect: Math.max(0, Number(g.minSelect) || 0),
+            maxSelect: Math.max(0, Number(g.maxSelect) || 0),
+            items: g.items
+              .filter((it) => it.name.trim())
+              .map((it) => ({ ...it, price: Number(it.price) || 0 })),
+          })),
         available,
         featured,
         order: product?.order ?? Date.now(),
@@ -305,6 +348,109 @@ export function ProductFormModal({
                 </button>
               </div>
             ))}
+          </div>
+        </div>
+
+        <div>
+          <div className="mb-2 flex items-center justify-between">
+            <div>
+              <span className="flex items-center gap-1.5 text-sm font-bold text-acai-900">
+                <Layers className="h-4 w-4" /> Monte o copo (opcional)
+              </span>
+              <p className="text-xs text-acai-400">
+                Grupos com limite de escolha, no estilo iFood — ex: &quot;Creme (até 2)&quot;, &quot;Frutas (até 3)&quot;.
+              </p>
+            </div>
+            <Button type="button" variant="ghost" size="sm" onClick={addGroup}>
+              <Plus className="h-3.5 w-3.5" /> Novo grupo
+            </Button>
+          </div>
+          <div className="space-y-3">
+            {extraGroups.map((group, gi) => (
+              <div key={group.id} className="rounded-xl border-2 border-acai-100 p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    value={group.name}
+                    onChange={(e) => updateGroup(gi, { name: e.target.value })}
+                    placeholder="Nome do grupo (ex: Escolha o creme)"
+                    className="min-w-[180px] flex-1 rounded-lg border-2 border-acai-100 px-3 py-2 text-sm font-semibold outline-none focus:border-acai-400"
+                  />
+                  <label className="flex items-center gap-1.5 text-xs font-medium text-acai-700">
+                    <input
+                      type="checkbox"
+                      checked={group.required}
+                      onChange={(e) => updateGroup(gi, { required: e.target.checked })}
+                      className="h-3.5 w-3.5 rounded accent-acai-600"
+                    />
+                    Obrigatório
+                  </label>
+                  <label className="flex items-center gap-1 text-xs font-medium text-acai-500">
+                    mín.
+                    <input
+                      type="number"
+                      min={0}
+                      value={group.minSelect}
+                      onChange={(e) => updateGroup(gi, { minSelect: Number(e.target.value) })}
+                      className="w-14 rounded-lg border-2 border-acai-100 px-2 py-1.5 text-xs outline-none focus:border-acai-400"
+                    />
+                  </label>
+                  <label className="flex items-center gap-1 text-xs font-medium text-acai-500">
+                    máx. (0 = sem limite)
+                    <input
+                      type="number"
+                      min={0}
+                      value={group.maxSelect}
+                      onChange={(e) => updateGroup(gi, { maxSelect: Number(e.target.value) })}
+                      className="w-14 rounded-lg border-2 border-acai-100 px-2 py-1.5 text-xs outline-none focus:border-acai-400"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => removeGroup(gi)}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-acai-300 hover:bg-red-50 hover:text-red-500"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className="mt-2.5 space-y-2">
+                  {group.items.map((item, ii) => (
+                    <div key={ii} className="flex items-center gap-2 pl-2">
+                      <input
+                        value={item.name}
+                        onChange={(e) => updateGroupItem(gi, ii, { name: e.target.value })}
+                        placeholder="Ex: Leite ninho"
+                        className="flex-1 rounded-lg border-2 border-acai-100 px-3 py-2 text-sm outline-none focus:border-acai-400"
+                      />
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={item.price}
+                        onChange={(e) => updateGroupItem(gi, ii, { price: Number(e.target.value) })}
+                        placeholder="Preço"
+                        className="w-28 rounded-lg border-2 border-acai-100 px-3 py-2 text-sm outline-none focus:border-acai-400"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeGroupItem(gi, ii)}
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-acai-300 hover:bg-red-50 hover:text-red-500"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                  <Button type="button" variant="ghost" size="sm" onClick={() => addGroupItem(gi)}>
+                    <Plus className="h-3.5 w-3.5" /> Item do grupo
+                  </Button>
+                </div>
+              </div>
+            ))}
+            {extraGroups.length === 0 && (
+              <p className="text-xs text-acai-400">
+                Nenhum grupo criado — o produto usa só a lista simples de complementos acima.
+              </p>
+            )}
           </div>
         </div>
 

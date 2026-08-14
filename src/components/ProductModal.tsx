@@ -4,11 +4,94 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { X, Minus, Plus, Check } from "lucide-react";
 import toast from "react-hot-toast";
-import type { Product, ProductExtra } from "@/lib/types";
+import type { ExtraGroup, Product, ProductExtra } from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
+import { isDataUrl } from "@/lib/image";
 import { useCartStore } from "@/store/cart";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Input";
+
+// "Monte seu copo": um cartão por grupo (creme, frutas, coberturas...), no
+// estilo do item customizável do iFood. Item único (maxSelect === 1) usa
+// visual de rádio; senão é multi-seleção que trava ao atingir o limite.
+function GroupSection({
+  group,
+  selected,
+  onToggle,
+}: {
+  group: ExtraGroup;
+  selected: ProductExtra[];
+  onToggle: (item: ProductExtra) => void;
+}) {
+  const items = group.items.filter((it) => it.available !== false);
+  if (items.length === 0) return null;
+
+  const isSingle = group.maxSelect === 1;
+  const atLimit = group.maxSelect > 0 && selected.length >= group.maxSelect;
+  const minNeeded = group.required ? Math.max(1, group.minSelect) : group.minSelect;
+  const satisfied = selected.length >= minNeeded;
+
+  return (
+    <div className="mt-6">
+      <div className="mb-2.5 flex items-center justify-between gap-2">
+        <p className="text-sm font-bold text-acai-900 dark:text-acai-100">{group.name}</p>
+        <div className="flex items-center gap-1.5">
+          {group.required && (
+            <span
+              className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                satisfied
+                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400"
+                  : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400"
+              }`}
+            >
+              Obrigatório
+            </span>
+          )}
+          {group.maxSelect > 0 && (
+            <span className="text-[11px] font-semibold text-acai-400 dark:text-acai-500">
+              {selected.length}/{group.maxSelect}
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="space-y-2">
+        {items.map((item) => {
+          const checked = selected.some((e) => e.name === item.name);
+          const disabled = !checked && !isSingle && atLimit;
+          return (
+            <button
+              key={item.name}
+              type="button"
+              onClick={() => onToggle(item)}
+              disabled={disabled}
+              className={`flex w-full items-center justify-between rounded-xl border-2 px-4 py-2.5 text-sm transition ${
+                checked
+                  ? "border-acai-500 bg-acai-50 dark:bg-acai-900/50"
+                  : disabled
+                    ? "cursor-not-allowed border-acai-100 opacity-50 dark:border-acai-800"
+                    : "border-acai-100 hover:border-acai-200 dark:border-acai-800 dark:hover:border-acai-700"
+              }`}
+            >
+              <span className="flex items-center gap-2.5 font-medium text-acai-800 dark:text-acai-200">
+                <span
+                  className={`flex h-5 w-5 shrink-0 items-center justify-center border-2 ${
+                    isSingle ? "rounded-full" : "rounded-md"
+                  } ${checked ? "border-acai-600 bg-acai-600 text-white" : "border-acai-200 dark:border-acai-700"}`}
+                >
+                  {checked && (isSingle ? <span className="h-2 w-2 rounded-full bg-white" /> : <Check className="h-3.5 w-3.5" />)}
+                </span>
+                {item.name}
+              </span>
+              <span className="font-semibold text-acai-600 dark:text-acai-300">
+                {item.price > 0 ? `+ ${formatCurrency(item.price)}` : "Grátis"}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export function ProductModal({
   product,
@@ -20,12 +103,14 @@ export function ProductModal({
   const addItem = useCartStore((s) => s.addItem);
   const [sizeIndex, setSizeIndex] = useState(0);
   const [selectedExtras, setSelectedExtras] = useState<ProductExtra[]>([]);
+  const [groupSelections, setGroupSelections] = useState<Record<string, ProductExtra[]>>({});
   const [qty, setQty] = useState(1);
   const [notes, setNotes] = useState("");
 
-  // sizeIndex/selectedExtras/qty/notes começam sempre nos valores padrão.
-  // O reset ao trocar de produto acontece pelo `key` que o HomePage passa
-  // em <ProductModal key={...} />, que remonta este componente do zero.
+  // sizeIndex/selectedExtras/groupSelections/qty/notes começam sempre nos
+  // valores padrão. O reset ao trocar de produto acontece pelo `key` que o
+  // HomePage passa em <ProductModal key={...} />, que remonta este
+  // componente do zero.
 
   useEffect(() => {
     if (product) {
@@ -44,8 +129,15 @@ export function ProductModal({
 
   if (!product || !size) return null;
 
-  const extrasTotal = selectedExtras.reduce((sum, e) => sum + e.price, 0);
+  const groups = product.extraGroups ?? [];
+  const groupExtrasFlat = Object.values(groupSelections).flat();
+  const extrasTotal = [...selectedExtras, ...groupExtrasFlat].reduce((sum, e) => sum + e.price, 0);
   const total = (size.price + extrasTotal) * qty;
+
+  const unmetGroup = groups.find((g) => {
+    const min = g.required ? Math.max(1, g.minSelect) : g.minSelect;
+    return (groupSelections[g.id]?.length ?? 0) < min;
+  });
 
   function toggleExtra(extra: ProductExtra) {
     setSelectedExtras((prev) =>
@@ -55,14 +147,35 @@ export function ProductModal({
     );
   }
 
+  function toggleGroupItem(group: ExtraGroup, item: ProductExtra) {
+    setGroupSelections((prev) => {
+      const current = prev[group.id] ?? [];
+      const isSelected = current.some((e) => e.name === item.name);
+      if (isSelected) {
+        return { ...prev, [group.id]: current.filter((e) => e.name !== item.name) };
+      }
+      if (group.maxSelect === 1) {
+        return { ...prev, [group.id]: [item] };
+      }
+      if (group.maxSelect > 0 && current.length >= group.maxSelect) {
+        return prev;
+      }
+      return { ...prev, [group.id]: [...current, item] };
+    });
+  }
+
   function handleAdd() {
+    if (unmetGroup) {
+      toast.error(`Escolha "${unmetGroup.name}" antes de continuar.`);
+      return;
+    }
     addItem({
       productId: product!.id,
       name: product!.name,
       imageUrl: product!.imageUrl,
       size: size!.label,
       unitPrice: size!.price,
-      extras: selectedExtras,
+      extras: [...selectedExtras, ...groupExtrasFlat],
       notes: notes.trim() || undefined,
       qty,
     });
@@ -80,7 +193,13 @@ export function ProductModal({
       <div className="relative flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl animate-scale-in dark:bg-acai-950 sm:rounded-3xl">
         <div className="relative h-56 w-full shrink-0 bg-acai-50 dark:bg-acai-900 sm:h-64">
           {product.imageUrl ? (
-            <Image src={product.imageUrl} alt={product.name} fill className="object-cover" />
+            <Image
+              src={product.imageUrl}
+              alt={product.name}
+              fill
+              unoptimized={isDataUrl(product.imageUrl)}
+              className="object-cover"
+            />
           ) : (
             <div className="flex h-full items-center justify-center text-6xl">🍨</div>
           )}
@@ -117,6 +236,15 @@ export function ProductModal({
               </div>
             </div>
           )}
+
+          {groups.map((group) => (
+            <GroupSection
+              key={group.id}
+              group={group}
+              selected={groupSelections[group.id] ?? []}
+              onToggle={(item) => toggleGroupItem(group, item)}
+            />
+          ))}
 
           {product.extras.filter((e) => e.available !== false).length > 0 && (
             <div className="mt-6">

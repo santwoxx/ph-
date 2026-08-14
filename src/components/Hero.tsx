@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { Star, Truck, Clock3 } from "lucide-react";
 import { useSettings } from "@/context/SettingsContext";
+import { isDataUrl } from "@/lib/image";
 
 export function Hero() {
   const { settings } = useSettings();
@@ -51,6 +52,7 @@ export function Hero() {
                 alt={settings.storeName}
                 fill
                 sizes="(min-width: 1024px) 420px, 80vw"
+                unoptimized={isDataUrl(settings.bannerUrl)}
                 className="object-cover"
                 priority
               />
@@ -63,6 +65,7 @@ export function Hero() {
                   alt={settings.storeName}
                   fill
                   sizes="(min-width: 1024px) 300px, 60vw"
+                  unoptimized={isDataUrl(settings.logoUrl)}
                   className="object-contain drop-shadow-2xl"
                   priority
                 />

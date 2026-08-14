@@ -14,6 +14,16 @@ export function FluidCursor() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    // Efeito decorativo de rastro do mouse: em toque (celular, onde fica a
+    // maioria dos clientes olhando o cardápio) não faz sentido — não existe
+    // "mouse" — e o simulador WebGL rodando full-screen a cada frame
+    // competia com o scroll, deixando a página travando. Em
+    // prefers-reduced-motion também pulamos por acessibilidade. O visual em
+    // desktop com mouse continua idêntico.
+    const prefersCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersCoarsePointer || prefersReducedMotion) return;
+
     let animationFrameId: number;
 
     const pointers = [
@@ -709,6 +719,20 @@ export function FluidCursor() {
       animationFrameId = requestAnimationFrame(updateFrame);
     }
 
+    // Reforço: além do navegador já pausar/reduzir requestAnimationFrame com
+    // a aba em segundo plano, cancelamos explicitamente e retomamos ao
+    // voltar, evitando a simulação rodar "no escuro" em navegadores que não
+    // pausam por conta própria (alguns webviews de app).
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        cancelAnimationFrame(animationFrameId);
+      } else {
+        lastUpdateTime = Date.now();
+        animationFrameId = requestAnimationFrame(updateFrame);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     function calcDeltaTime() {
       const now = Date.now();
       let dt = (now - lastUpdateTime) / 1000;
@@ -997,14 +1021,18 @@ export function FluidCursor() {
     window.addEventListener("mousedown", onMouseDown);
     document.body.addEventListener("mousemove", handleFirstMouseMove);
     window.addEventListener("mousemove", onMouseMove);
-    document.body.addEventListener("touchstart", handleFirstTouchStart);
-    window.addEventListener("touchstart", onTouchStart, { passive: false });
-    window.addEventListener("touchmove", onTouchMove, { passive: false });
+    document.body.addEventListener("touchstart", handleFirstTouchStart, { passive: true });
+    // passive: true porque estes handlers nunca chamam preventDefault — sem
+    // isso o navegador não consegue otimizar/paralelizar o scroll em
+    // dispositivos de toque, o que travava a rolagem do cardápio no celular.
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
     window.addEventListener("touchend", onTouchEnd);
 
     updateFrame();
 
     return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("mousedown", onMouseDown);
       document.body.removeEventListener("mousemove", handleFirstMouseMove);
       window.removeEventListener("mousemove", onMouseMove);
