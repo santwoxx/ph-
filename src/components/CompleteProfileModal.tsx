@@ -6,6 +6,7 @@ import { X, UserRound } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { updateUserProfile } from "@/lib/data/users";
 import { formatCPF, isValidCPF } from "@/lib/cpf";
+import { formatPhone } from "@/lib/format";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
@@ -29,6 +30,7 @@ function CompleteProfileModalInner() {
 
   const [name, setName] = useState(profile?.name || user?.displayName || "");
   const [cpf, setCpf] = useState(profile?.cpf || "");
+  const [phone, setPhone] = useState(profile?.phone || "");
   const [street, setStreet] = useState("");
   const [number, setNumber] = useState("");
   const [district, setDistrict] = useState("");
@@ -50,6 +52,10 @@ function CompleteProfileModalInner() {
       toast.error("CPF inválido. Confira os números digitados.");
       return;
     }
+    if (!phone.replace(/\D/g, "").trim() || phone.replace(/\D/g, "").length < 10) {
+      toast.error("Informe um número de telefone válido.");
+      return;
+    }
     if (!street.trim() || !number.trim() || !district.trim() || !city.trim()) {
       toast.error("Preencha o endereço completo.");
       return;
@@ -60,6 +66,7 @@ function CompleteProfileModalInner() {
       await updateUserProfile(user.uid, {
         name: name.trim(),
         cpf: cpf.replace(/\D/g, ""),
+        phone: phone.replace(/\D/g, ""),
         addresses: [
           {
             street: street.trim(),
@@ -112,14 +119,24 @@ function CompleteProfileModalInner() {
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6">
           <div className="space-y-4">
             <Input label="Nome completo" required value={name} onChange={(e) => setName(e.target.value)} />
-            <Input
-              label="CPF"
-              required
-              placeholder="000.000.000-00"
-              value={cpf}
-              onChange={(e) => setCpf(formatCPF(e.target.value))}
-              maxLength={14}
-            />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Input
+                label="CPF"
+                required
+                placeholder="000.000.000-00"
+                value={cpf}
+                onChange={(e) => setCpf(formatCPF(e.target.value))}
+                maxLength={14}
+              />
+              <Input
+                label="Telefone"
+                required
+                placeholder="(00) 00000-0000"
+                value={phone}
+                onChange={(e) => setPhone(formatPhone(e.target.value))}
+                maxLength={15}
+              />
+            </div>
           </div>
 
           <p className="mb-2.5 mt-6 text-sm font-bold text-acai-900 dark:text-acai-100">

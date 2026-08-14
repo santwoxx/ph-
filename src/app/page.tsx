@@ -11,6 +11,7 @@ import { CartDrawer } from "@/components/CartDrawer";
 
 import { subscribeToProducts } from "@/lib/data/products";
 import { useSettings } from "@/context/SettingsContext";
+import { checkIsStoreOpen } from "@/lib/schedule";
 import type { Product } from "@/lib/types";
 import { PackageSearch } from "lucide-react";
 
@@ -31,19 +32,8 @@ export default function HomePage() {
 
   const isStoreOpen = useMemo(() => {
     if (!mounted) return true;
-    if (!settings.isOpen) return false;
-    try {
-      const regex = /(\d{1,2})h(?: \d{2}m)? às (\d{1,2})h/i;
-      const match = settings.openingHours.match(regex);
-      if (match) {
-        const start = parseInt(match[1], 10);
-        const end = parseInt(match[2], 10);
-        const now = new Date().getHours();
-        if (now < start || now >= end) return false;
-      }
-    } catch (e) {}
-    return true;
-  }, [mounted, settings.isOpen, settings.openingHours]);
+    return checkIsStoreOpen(settings);
+  }, [mounted, settings]);
 
   useEffect(() => {
     const unsub = subscribeToProducts(setProducts, () => setProducts([]));

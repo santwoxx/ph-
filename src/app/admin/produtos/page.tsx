@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import toast from "react-hot-toast";
-import { Plus, Pencil, Trash2, PackageSearch } from "lucide-react";
+import { Plus, Pencil, Trash2, PackageSearch, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { ConfirmDialog } from "@/components/ui/Modal";
 import { ProductFormModal } from "@/components/admin/ProductFormModal";
-import { subscribeToProducts, deleteProduct } from "@/lib/data/products";
+import { subscribeToProducts, deleteProduct, updateProduct } from "@/lib/data/products";
 import { deleteImageByPath } from "@/lib/data/upload";
 import { useSettings } from "@/context/SettingsContext";
 import { formatCurrency } from "@/lib/format";
@@ -115,6 +115,14 @@ export default function AdminProductsPage() {
                   <div className="mt-3 flex gap-2">
                     <Button variant="outline" size="sm" fullWidth onClick={() => openEdit(product)}>
                       <Pencil className="h-3.5 w-3.5" /> Editar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => updateProduct(product.id, { available: !product.available })}
+                      title={product.available ? "Pausar vendas" : "Retomar vendas"}
+                    >
+                      {product.available ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5 text-acai-400" />}
                     </Button>
                     <Button variant="danger" size="sm" onClick={() => setDeleting(product)}>
                       <Trash2 className="h-3.5 w-3.5" />

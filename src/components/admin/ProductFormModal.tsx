@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import Image from "next/image";
 import toast from "react-hot-toast";
-import { Plus, Trash2, ImagePlus, Loader2 } from "lucide-react";
+import { Plus, Trash2, ImagePlus, Loader2, Eye, EyeOff } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
@@ -290,6 +290,14 @@ export function ProductFormModal({
                 />
                 <button
                   type="button"
+                  onClick={() => updateExtra(i, { available: ex.available === false ? true : false })}
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition ${ex.available !== false ? 'text-emerald-500 bg-emerald-50 hover:bg-emerald-100' : 'text-acai-400 bg-acai-100 hover:bg-acai-200'}`}
+                  title={ex.available !== false ? "Disponível" : "Esgotado"}
+                >
+                  {ex.available !== false ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                </button>
+                <button
+                  type="button"
                   onClick={() => removeExtra(i)}
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-acai-300 hover:bg-red-50 hover:text-red-500"
                 >
@@ -301,23 +309,23 @@ export function ProductFormModal({
         </div>
 
         <div className="flex flex-wrap gap-6">
-          <label className="flex items-center gap-2 text-sm font-medium text-acai-800">
-            <input
-              type="checkbox"
-              checked={available}
-              onChange={(e) => setAvailable(e.target.checked)}
-              className="h-4 w-4 rounded accent-acai-600"
-            />
-            Disponível no cardápio
-          </label>
-          <label className="flex items-center gap-2 text-sm font-medium text-acai-800">
+          <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
               checked={featured}
               onChange={(e) => setFeatured(e.target.checked)}
               className="h-4 w-4 rounded accent-acai-600"
             />
-            Destacar como &quot;Mais pedido&quot;
+            <span className="text-sm font-medium text-acai-900">Destaque na vitrine</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={available}
+              onChange={(e) => setAvailable(e.target.checked)}
+              className="h-4 w-4 rounded accent-acai-600"
+            />
+            <span className="text-sm font-medium text-acai-900">Produto disponível para venda</span>
           </label>
         </div>
 

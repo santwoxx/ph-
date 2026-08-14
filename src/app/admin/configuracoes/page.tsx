@@ -30,6 +30,8 @@ export default function AdminSettingsPage() {
   }
 
   const [newCategory, setNewCategory] = useState("");
+  const [newNeighborhoodName, setNewNeighborhoodName] = useState("");
+  const [newNeighborhoodFee, setNewNeighborhoodFee] = useState(0);
   const [savingSettings, setSavingSettings] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
@@ -90,6 +92,21 @@ export default function AdminSettingsPage() {
       "categories",
       form.categories.filter((c) => c !== cat)
     );
+  }
+
+  function addNeighborhood() {
+    const name = newNeighborhoodName.trim();
+    if (!name) return;
+    const current = form.neighborhoods || [];
+    if (current.some((n) => n.name.toLowerCase() === name.toLowerCase())) return;
+    update("neighborhoods", [...current, { name, fee: newNeighborhoodFee }]);
+    setNewNeighborhoodName("");
+    setNewNeighborhoodFee(0);
+  }
+
+  function removeNeighborhood(name: string) {
+    const current = form.neighborhoods || [];
+    update("neighborhoods", current.filter((n) => n.name !== name));
   }
 
   async function handleAddAdmin(e: FormEvent) {
@@ -194,15 +211,93 @@ export default function AdminSettingsPage() {
               onChange={(e) => update("tagline", e.target.value)}
             />
           </div>
-          <label className="mt-4 flex items-center gap-2 text-sm font-medium text-acai-800">
-            <input
-              type="checkbox"
-              checked={form.isOpen}
-              onChange={(e) => update("isOpen", e.target.checked)}
-              className="h-4 w-4 rounded accent-acai-600"
-            />
-            Loja aberta para pedidos
-          </label>
+          <div className="mt-6 border-t border-acai-100 pt-4">
+            <h3 className="mb-2 text-sm font-bold text-acai-900">Modo de Abertura</h3>
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 text-sm text-acai-800 cursor-pointer">
+                <input
+                  type="radio"
+                  name="openMode"
+                  checked={!form.isAutoOpen}
+                  onChange={() => update("isAutoOpen", false)}
+                  className="accent-acai-600"
+                />
+                Manual
+              </label>
+              <label className="flex items-center gap-2 text-sm text-acai-800 cursor-pointer">
+                <input
+                  type="radio"
+                  name="openMode"
+                  checked={form.isAutoOpen}
+                  onChange={() => update("isAutoOpen", true)}
+                  className="accent-acai-600"
+                />
+                Automático
+              </label>
+            </div>
+            
+            {!form.isAutoOpen && (
+              <label className="mt-4 flex items-center gap-2 text-sm font-medium text-acai-800">
+                <input
+                  type="checkbox"
+                  checked={form.isOpen}
+                  onChange={(e) => update("isOpen", e.target.checked)}
+                  className="h-4 w-4 rounded accent-acai-600"
+                />
+                Loja aberta para pedidos
+              </label>
+            )}
+
+            {form.isAutoOpen && form.schedule && (
+              <div className="mt-4 space-y-3">
+                {["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"].map((dayName, index) => {
+                  const dayStr = String(index);
+                  const dayData = form.schedule![dayStr];
+                  if (!dayData) return null;
+                  return (
+                    <div key={dayStr} className="flex items-center gap-4 bg-acai-50 p-2 px-3 rounded-xl border border-acai-100">
+                      <label className="flex items-center gap-2 w-24 shrink-0 text-sm font-semibold text-acai-900 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={dayData.active}
+                          onChange={(e) => {
+                            const newSchedule = { ...form.schedule };
+                            newSchedule[dayStr] = { ...dayData, active: e.target.checked };
+                            update("schedule", newSchedule);
+                          }}
+                          className="accent-acai-600"
+                        />
+                        {dayName}
+                      </label>
+                      <Input
+                        label=""
+                        type="time"
+                        value={dayData.start}
+                        disabled={!dayData.active}
+                        onChange={(e) => {
+                          const newSchedule = { ...form.schedule };
+                          newSchedule[dayStr] = { ...dayData, start: e.target.value };
+                          update("schedule", newSchedule);
+                        }}
+                      />
+                      <span className="text-sm text-acai-400">até</span>
+                      <Input
+                        label=""
+                        type="time"
+                        value={dayData.end}
+                        disabled={!dayData.active}
+                        onChange={(e) => {
+                          const newSchedule = { ...form.schedule };
+                          newSchedule[dayStr] = { ...dayData, end: e.target.value };
+                          update("schedule", newSchedule);
+                        }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </section>
 
         <section className="rounded-2xl border border-acai-100 bg-white p-5 shadow-card sm:p-6">
@@ -224,6 +319,52 @@ export default function AdminSettingsPage() {
               value={form.minOrder}
               onChange={(e) => update("minOrder", Number(e.target.value))}
             />
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-acai-100 bg-white p-5 shadow-card sm:p-6">
+          <h2 className="font-display text-base font-bold text-acai-950">Taxas por Bairro (Dinâmica)</h2>
+          <p className="mt-1 text-sm text-acai-400">
+            Se o bairro do cliente estiver nesta lista, o sistema cobrará a taxa cadastrada aqui. Se não estiver, cobrará a <strong>Taxa de entrega (padrão)</strong> configurada acima.
+          </p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_120px_auto]">
+            <Input
+              label="Nome do Bairro"
+              placeholder="Ex: Centro"
+              value={newNeighborhoodName}
+              onChange={(e) => setNewNeighborhoodName(e.target.value)}
+            />
+            <Input
+              label="Taxa (R$)"
+              type="number"
+              min={0}
+              step="0.01"
+              value={newNeighborhoodFee}
+              onChange={(e) => setNewNeighborhoodFee(Number(e.target.value))}
+            />
+            <div className="flex items-end">
+              <Button type="button" variant="outline" onClick={addNeighborhood}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          
+          <div className="mt-4 flex flex-col gap-2">
+            {(form.neighborhoods || []).length === 0 ? (
+              <p className="text-sm text-acai-400">Nenhum bairro com taxa específica cadastrado.</p>
+            ) : (
+              (form.neighborhoods || []).map((n) => (
+                <div key={n.name} className="flex items-center justify-between rounded-xl border border-acai-100 px-4 py-3">
+                  <div>
+                    <p className="text-sm font-semibold text-acai-900">{n.name}</p>
+                    <p className="text-xs text-acai-500">Taxa: R$ {n.fee.toFixed(2).replace(".", ",")}</p>
+                  </div>
+                  <button type="button" onClick={() => removeNeighborhood(n.name)} className="text-acai-300 transition hover:text-red-500">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))
+            )}
           </div>
         </section>
 

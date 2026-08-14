@@ -26,6 +26,7 @@ import { getUserProfile, updateUserProfile } from "@/lib/data/users";
 import { createOrder } from "@/lib/data/orders";
 import { getCoupon } from "@/lib/data/coupons";
 import { formatCurrency } from "@/lib/format";
+import { checkIsStoreOpen } from "@/lib/schedule";
 import type { DeliveryType, PaymentMethod, Coupon, OrderAddress } from "@/lib/types";
 
 export default function CheckoutPage() {
@@ -101,7 +102,18 @@ export default function CheckoutPage() {
   }
 
   const sub = subtotal();
-  const deliveryFee = deliveryType === "delivery" ? settings.deliveryFee : 0;
+
+  let calculatedDeliveryFee = settings.deliveryFee;
+  if (district && settings.neighborhoods && settings.neighborhoods.length > 0) {
+    const matched = settings.neighborhoods.find(
+      (n) => n.name.toLowerCase() === district.trim().toLowerCase()
+    );
+    if (matched) {
+      calculatedDeliveryFee = matched.fee;
+    }
+  }
+
+  const deliveryFee = deliveryType === "delivery" ? calculatedDeliveryFee : 0;
   
   let discountAmount = 0;
   if (appliedCoupon) {
@@ -165,6 +177,12 @@ export default function CheckoutPage() {
       router.push("/login?redirect=/checkout");
       return;
     }
+    
+    if (!checkIsStoreOpen(settings)) {
+      toast.error("A loja está fechada no momento.");
+      return;
+    }
+
     if (items.length === 0 || belowMinimum) return;
 
     setSubmitting(true);

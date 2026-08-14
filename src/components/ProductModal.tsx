@@ -118,11 +118,11 @@ export function ProductModal({
             </div>
           )}
 
-          {product.extras.length > 0 && (
+          {product.extras.filter((e) => e.available !== false).length > 0 && (
             <div className="mt-6">
               <p className="mb-2.5 text-sm font-bold text-acai-900 dark:text-acai-100">Complementos</p>
               <div className="space-y-2">
-                {product.extras.map((extra) => {
+                {product.extras.filter((e) => e.available !== false).map((extra) => {
                   const checked = selectedExtras.some((e) => e.name === extra.name);
                   return (
                     <button

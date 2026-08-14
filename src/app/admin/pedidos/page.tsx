@@ -15,6 +15,9 @@ import {
   type Order,
   type OrderStatus,
 } from "@/lib/types";
+import { printOrderReceipt } from "@/lib/print";
+import { useSettings } from "@/context/SettingsContext";
+import { Printer } from "lucide-react";
 
 const FILTERS: { key: OrderStatus | "all"; label: string }[] = [
   { key: "all", label: "Todos" },
@@ -27,6 +30,7 @@ const FILTERS: { key: OrderStatus | "all"; label: string }[] = [
 ];
 
 export default function AdminOrdersPage() {
+  const { settings } = useSettings();
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [filter, setFilter] = useState<OrderStatus | "all">("all");
   const [openId, setOpenId] = useState<string | null>(null);
@@ -294,6 +298,13 @@ export default function AdminOrdersPage() {
                               Cancelar pedido
                             </button>
                           )}
+                          <button
+                            onClick={() => printOrderReceipt(order, settings)}
+                            className="flex items-center gap-2 rounded-xl border-2 border-acai-200 px-4 py-2 text-sm font-semibold text-acai-700 transition hover:bg-acai-50"
+                          >
+                            <Printer className="h-4 w-4" />
+                            Imprimir Comanda
+                          </button>
                         </div>
                       </div>
                     </div>

@@ -9,6 +9,7 @@ import { useCartStore } from "@/store/cart";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { NotificationBell } from "@/components/NotificationBell";
+import { checkIsStoreOpen } from "@/lib/schedule";
 
 export function Header() {
   const totalItems = useCartStore((s) => s.totalItems());
@@ -20,6 +21,8 @@ export function Header() {
   const [mounted, setMounted] = useState(false);
   const [isBumping, setIsBumping] = useState(false);
   const prevTotal = useRef(totalItems);
+
+  const isStoreOpen = checkIsStoreOpen(settings);
 
   useEffect(() => setMounted(true), []);
 
@@ -49,7 +52,7 @@ export function Header() {
               {settings.storeName}
             </p>
             <p className="hidden text-xs font-medium text-acai-400 dark:text-acai-300 sm:block">
-              {settings.isOpen ? "Aberto agora" : "Fechado no momento"}
+              {isStoreOpen ? "Aberto agora" : "Fechado no momento"}
             </p>
           </div>
         </Link>

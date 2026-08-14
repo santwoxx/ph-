@@ -109,7 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const profile = user && profileSnapshot?.uid === user.uid ? profileSnapshot.profile : null;
   const profileChecked = !user || profileSnapshot?.uid === user.uid;
   const needsProfileCompletion =
-    Boolean(user) && profileChecked && (!profile || !profile.cpf || !profile.addresses?.length);
+    Boolean(user) && profileChecked && (!profile || !profile.cpf || !profile.phone || !profile.addresses?.length);
 
   return (
     <AuthContext.Provider

@@ -43,7 +43,7 @@ export function ProductCard({
         {!product.available && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/50">
             <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-acai-900">
-              Indisponível
+              Esgotado Hoje
             </span>
           </div>
         )}

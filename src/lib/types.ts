@@ -6,6 +6,7 @@ export type ProductSize = {
 export type ProductExtra = {
   name: string;
   price: number;
+  available?: boolean;
 };
 
 export type Product = {
@@ -123,6 +124,14 @@ export type Expense = {
   createdBy: string;
 };
 
+export type StoreSchedule = {
+  [day: string]: { // "0" to "6"
+    active: boolean;
+    start: string; // HH:mm
+    end: string; // HH:mm
+  };
+};
+
 export type StoreSettings = {
   storeName: string;
   tagline: string;
@@ -135,9 +144,12 @@ export type StoreSettings = {
   deliveryFee: number;
   minOrder: number;
   isOpen: boolean;
+  isAutoOpen?: boolean;
+  schedule?: StoreSchedule;
   categories: string[];
   pixKey?: string;
   monthlyGoal?: number;
+  neighborhoods?: { name: string; fee: number }[];
 };
 
 // Aviso que o admin dispara (hoje, automaticamente ao mudar o status de um

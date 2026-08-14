@@ -16,9 +16,20 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   deliveryFee: 6,
   minOrder: 15,
   isOpen: true,
+  isAutoOpen: false,
+  schedule: {
+    "0": { active: true, start: "18:00", end: "23:59" },
+    "1": { active: true, start: "18:00", end: "23:59" },
+    "2": { active: true, start: "18:00", end: "23:59" },
+    "3": { active: true, start: "18:00", end: "23:59" },
+    "4": { active: true, start: "18:00", end: "23:59" },
+    "5": { active: true, start: "18:00", end: "23:59" },
+    "6": { active: true, start: "18:00", end: "23:59" },
+  },
   categories: ["Açaí", "Combos", "Adicionais", "Bebidas", "Sobremesas"],
   pixKey: "",
   monthlyGoal: 0,
+  neighborhoods: [],
 };
 
 export async function getSettings(): Promise<StoreSettings> {
