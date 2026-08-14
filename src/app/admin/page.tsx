@@ -46,8 +46,13 @@ export default function AdminDashboardPage() {
   const [expenses, setExpenses] = useState<Expense[] | null>(null);
 
   useEffect(() => {
-    const unsubOrders = subscribeToAllOrders(setOrders, () => setOrders([]));
-    const unsubExpenses = subscribeToExpenses(setExpenses, () => setExpenses([]));
+    // O painel só mostra hoje, o mês atual e os últimos 7 dias — 90 dias de
+    // margem é mais que suficiente e evita baixar o histórico inteiro de
+    // pedidos/despesas toda vez que o Dashboard abre.
+    const since = Date.now() - 90 * 24 * 60 * 60 * 1000;
+    const sinceDate = new Date(since).toISOString().slice(0, 10);
+    const unsubOrders = subscribeToAllOrders(setOrders, () => setOrders([]), { sinceMillis: since });
+    const unsubExpenses = subscribeToExpenses(setExpenses, () => setExpenses([]), { sinceDate });
     return () => {
       unsubOrders();
       unsubExpenses();

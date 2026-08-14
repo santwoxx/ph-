@@ -55,8 +55,13 @@ export default function AdminFinancePage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const unsubOrders = subscribeToAllOrders(setOrders, () => setOrders([]));
-    const unsubExpenses = subscribeToExpenses(setExpenses, () => setExpenses([]));
+    // O gráfico mostra os últimos 6 meses (mês atual + 5 anteriores) — não
+    // precisa do histórico inteiro de pedidos/despesas pra montar isso.
+    const base = new Date();
+    const since = new Date(base.getFullYear(), base.getMonth() - 5, 1).getTime();
+    const sinceDate = new Date(since).toISOString().slice(0, 10);
+    const unsubOrders = subscribeToAllOrders(setOrders, () => setOrders([]), { sinceMillis: since });
+    const unsubExpenses = subscribeToExpenses(setExpenses, () => setExpenses([]), { sinceDate });
     return () => {
       unsubOrders();
       unsubExpenses();

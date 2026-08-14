@@ -6,8 +6,10 @@ import {
   onSnapshot,
   orderBy,
   query,
+  where,
   serverTimestamp,
   Timestamp,
+  type QueryConstraint,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Expense } from "@/lib/types";
@@ -45,11 +47,20 @@ export async function deleteExpense(id: string) {
   return deleteDoc(doc(db, COLLECTION, id));
 }
 
+// `sinceDate` ("YYYY-MM-DD") é opcional — sem ele, busca todo o histórico
+// de despesas, como antes. Dashboard e Finanças só usam o mês/últimos
+// meses, então passam essa data pra não baixar despesas antigas à toa.
 export function subscribeToExpenses(
   onData: (expenses: Expense[]) => void,
-  onError?: (error: Error) => void
+  onError?: (error: Error) => void,
+  options?: { sinceDate?: string }
 ) {
-  const q = query(collection(db, COLLECTION), orderBy("date", "desc"));
+  const clauses: QueryConstraint[] = [];
+  if (options?.sinceDate) {
+    clauses.push(where("date", ">=", options.sinceDate));
+  }
+  clauses.push(orderBy("date", "desc"));
+  const q = query(collection(db, COLLECTION), ...clauses);
   return onSnapshot(
     q,
     (snap) => onData(snap.docs.map((d) => mapExpense(d.id, d.data()))),

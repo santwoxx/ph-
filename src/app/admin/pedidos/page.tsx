@@ -61,6 +61,8 @@ export default function AdminOrdersPage() {
   const [filter, setFilter] = useState<OrderStatus | "all">("all");
   const [openId, setOpenId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const PAGE_SIZE = 50;
+  const [pageSize, setPageSize] = useState(PAGE_SIZE);
 
   const initialLoadRef = useRef(true);
   const maxTimeRef = useRef<number>(0);
@@ -91,6 +93,12 @@ export default function AdminOrdersPage() {
   }, []);
 
   useEffect(() => {
+    // Reseta a cada (re)assinatura — inclusive quando "Carregar mais" muda
+    // o pageSize — pra não confundir o lote maior recém-carregado (que
+    // inclui pedidos antigos) com "pedido novo chegando" e disparar o som/
+    // toast à toa.
+    initialLoadRef.current = true;
+
     const unsub = subscribeToAllOrders((newOrders) => {
       setOrders(newOrders);
 
@@ -127,10 +135,10 @@ export default function AdminOrdersPage() {
           console.error("Audio block", e);
         }
       }
-    }, () => setOrders([]));
+    }, () => setOrders([]), { limitCount: pageSize });
 
     return () => unsub();
-  }, []);
+  }, [pageSize]);
 
   const filtered = useMemo(() => {
     if (!orders) return [];
@@ -344,6 +352,17 @@ export default function AdminOrdersPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {orders !== null && orders.length >= pageSize && (
+        <div className="flex justify-center pt-2">
+          <button
+            onClick={() => setPageSize((p) => p + PAGE_SIZE)}
+            className="rounded-xl border-2 border-acai-200 bg-white px-5 py-2.5 text-sm font-semibold text-acai-700 transition hover:bg-acai-50"
+          >
+            Carregar pedidos mais antigos
+          </button>
         </div>
       )}
     </div>

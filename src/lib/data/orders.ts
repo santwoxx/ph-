@@ -7,9 +7,11 @@ import {
   orderBy,
   query,
   where,
+  limit,
   writeBatch,
   serverTimestamp,
   Timestamp,
+  type QueryConstraint,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Order, OrderStatus } from "@/lib/types";
@@ -61,11 +63,26 @@ export async function createOrder(input: OrderInput) {
   });
 }
 
+// `sinceMillis` e `limitCount` são opcionais pra quem só precisa de uma
+// janela de tempo (Dashboard, Finanças) ou de um lote paginado (tela de
+// Pedidos) — sem eles, o comportamento é o mesmo de sempre: todo o
+// histórico. Sem isso, cada uma dessas telas baixava a coleção `orders`
+// inteira toda vez que abria, o que só piora conforme a loja acumula
+// pedidos (mais leituras cobradas, carregamento mais lento).
 export function subscribeToAllOrders(
   onData: (orders: Order[]) => void,
-  onError?: (error: Error) => void
+  onError?: (error: Error) => void,
+  options?: { sinceMillis?: number; limitCount?: number }
 ) {
-  const q = query(collection(db, COLLECTION), orderBy("createdAt", "desc"));
+  const clauses: QueryConstraint[] = [];
+  if (options?.sinceMillis) {
+    clauses.push(where("createdAt", ">=", Timestamp.fromMillis(options.sinceMillis)));
+  }
+  clauses.push(orderBy("createdAt", "desc"));
+  if (options?.limitCount) {
+    clauses.push(limit(options.limitCount));
+  }
+  const q = query(collection(db, COLLECTION), ...clauses);
   return onSnapshot(
     q,
     (snap) => onData(snap.docs.map((d) => mapOrder(d.id, d.data()))),
