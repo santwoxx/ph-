@@ -6,9 +6,10 @@ import { Footer } from "@/components/Footer";
 import { Hero } from "@/components/Hero";
 import { CategoryTabs } from "@/components/CategoryTabs";
 import { ProductCard, ProductSkeleton } from "@/components/ProductCard";
-import { ProductModal } from "@/components/ProductModal";
-import { CartDrawer } from "@/components/CartDrawer";
+import dynamic from "next/dynamic";
 
+const ProductModal = dynamic(() => import("@/components/ProductModal").then(mod => mod.ProductModal), { ssr: false });
+const CartDrawer = dynamic(() => import("@/components/CartDrawer").then(mod => mod.CartDrawer), { ssr: false });
 import { subscribeToProducts } from "@/lib/data/products";
 import { useSettings } from "@/context/SettingsContext";
 import { checkIsStoreOpen } from "@/lib/schedule";

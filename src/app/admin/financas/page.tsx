@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import toast from "react-hot-toast";
-import { Plus, Trash2, TrendingUp, TrendingDown, PiggyBank, Receipt, Trophy } from "lucide-react";
+import { Plus, Trash2, TrendingUp, TrendingDown, PiggyBank, Receipt, Trophy, Printer } from "lucide-react";
 import {
   ResponsiveContainer,
   BarChart,
@@ -21,7 +21,9 @@ import { ConfirmDialog } from "@/components/ui/Modal";
 import { subscribeToAllOrders } from "@/lib/data/orders";
 import { subscribeToExpenses, createExpense, deleteExpense } from "@/lib/data/expenses";
 import { useAuth } from "@/context/AuthContext";
+import { useSettings } from "@/context/SettingsContext";
 import { formatCurrency, formatDate, todayISO } from "@/lib/format";
+import { printCashReport } from "@/lib/print";
 import type { Order, Expense } from "@/lib/types";
 
 const EXPENSE_CATEGORIES = [
@@ -40,6 +42,7 @@ function monthKey(d: Date) {
 
 export default function AdminFinancePage() {
   const { user } = useAuth();
+  const { settings } = useSettings();
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [expenses, setExpenses] = useState<Expense[] | null>(null);
   const [deleting, setDeleting] = useState<Expense | null>(null);
@@ -175,13 +178,31 @@ export default function AdminFinancePage() {
     }
   }
 
+  function handlePrintToday() {
+    const today = todayISO();
+    const todaysOrders = orders ? orders.filter(o => {
+      // ajustando fuso basico para comparar "hoje"
+      const d = new Date(o.createdAt);
+      d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+      return d.toISOString().slice(0, 10) === today;
+    }) : [];
+    const todaysExpenses = expenses ? expenses.filter(e => e.date === today) : [];
+    const dateLabel = new Date().toLocaleDateString('pt-BR');
+    printCashReport(todaysOrders, todaysExpenses, settings, dateLabel);
+  }
+
   const loading = orders === null || expenses === null;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-2xl font-bold text-acai-950">Finanças</h1>
-        <p className="text-sm text-acai-400">Controle receitas, despesas e o lucro da loja.</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-acai-950">Finanças</h1>
+          <p className="text-sm text-acai-400">Controle receitas, despesas e o lucro da loja.</p>
+        </div>
+        <Button onClick={handlePrintToday} variant="outline" className="gap-2 bg-white">
+          <Printer className="h-4 w-4" /> Fechamento de Hoje
+        </Button>
       </div>
 
       {loading ? (

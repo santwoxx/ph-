@@ -1,11 +1,12 @@
 "use client";
 
+import { memo } from "react";
 import Image from "next/image";
 import { Plus, Flame } from "lucide-react";
 import type { Product } from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
 
-export function ProductCard({
+export const ProductCard = memo(function ProductCard({
   product,
   onSelect,
 }: {
@@ -68,7 +69,7 @@ export function ProductCard({
       </div>
     </button>
   );
-}
+});
 
 export function ProductSkeleton() {
   return (

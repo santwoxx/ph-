@@ -1,5 +1,5 @@
 import { formatCurrency, formatDateTime } from "./format";
-import { PAYMENT_METHOD_LABEL, type Order, type StoreSettings } from "./types";
+import { PAYMENT_METHOD_LABEL, type Order, type StoreSettings, type Expense } from "./types";
 
 export function printOrderReceipt(order: Order, settings: StoreSettings) {
   const printWindow = window.open('', '_blank', 'width=400,height=600');
@@ -135,6 +135,135 @@ export function printOrderReceipt(order: Order, settings: StoreSettings) {
             setTimeout(function() {
               window.print();
               // Try to close only if it is a popup
+              setTimeout(function() { window.close(); }, 500);
+            }, 500);
+          }
+        </script>
+      </body>
+    </html>
+  `;
+
+  printWindow.document.write(html);
+  printWindow.document.close();
+}
+
+export function printCashReport(orders: Order[], expenses: Expense[], settings: StoreSettings, dateLabel: string) {
+  const printWindow = window.open('', '_blank', 'width=400,height=600');
+  if (!printWindow) {
+    alert("O bloqueador de pop-ups impediu a impressão. Por favor, permita pop-ups para este site.");
+    return;
+  }
+
+  let totalPix = 0;
+  let totalCard = 0;
+  let totalCash = 0;
+  
+  const validOrders = orders.filter(o => o.status !== "cancelled");
+
+  validOrders.forEach(o => {
+    if (o.paymentMethod === "pix") totalPix += o.total;
+    else if (o.paymentMethod === "credit" || o.paymentMethod === "debit" || o.paymentMethod === "meal") totalCard += o.total;
+    else if (o.paymentMethod === "cash") totalCash += o.total;
+  });
+
+  const totalRevenue = totalPix + totalCard + totalCash;
+  const totalExpenses = expenses.reduce((acc, e) => acc + e.amount, 0);
+  const netProfit = totalRevenue - totalExpenses;
+
+  const expensesHtml = expenses.length > 0 
+    ? expenses.map(e => `
+      <div class="totals-row" style="margin-bottom: 2px;">
+        <span style="font-size: 12px;">${e.description}</span>
+        <span style="font-size: 12px;">${formatCurrency(e.amount)}</span>
+      </div>
+    `).join('')
+    : '<div class="text-center" style="font-size: 12px;">Nenhuma despesa registrada.</div>';
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Fechamento de Caixa - ${dateLabel}</title>
+        <style>
+          @page { margin: 0; }
+          body {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            color: #000;
+            margin: 0;
+            padding: 15px 10px;
+            width: 80mm;
+            box-sizing: border-box;
+          }
+          .text-center { text-align: center; }
+          .font-bold { font-weight: bold; }
+          .divider { border-top: 1px dashed #000; margin: 10px 0; }
+          .store-name { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
+          .totals-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+          .grand-total { font-size: 16px; font-weight: bold; border-top: 1px solid #000; padding-top: 4px; margin-top: 4px; }
+        </style>
+      </head>
+      <body>
+        <div class="text-center">
+          <div class="store-name">${settings.storeName}</div>
+        </div>
+        
+        <div class="divider"></div>
+        
+        <div class="text-center">
+          <div class="font-bold" style="font-size: 16px;">FECHAMENTO DE CAIXA</div>
+          <div style="margin-top: 5px;">Data: ${dateLabel}</div>
+        </div>
+        
+        <div class="divider"></div>
+        
+        <div class="font-bold" style="margin-bottom: 5px;">ENTRADAS (RECEITAS)</div>
+        <div class="totals-row">
+          <span>PIX</span>
+          <span>${formatCurrency(totalPix)}</span>
+        </div>
+        <div class="totals-row">
+          <span>Cartões (Crédito/Débito/VR)</span>
+          <span>${formatCurrency(totalCard)}</span>
+        </div>
+        <div class="totals-row">
+          <span>Dinheiro Físico</span>
+          <span>${formatCurrency(totalCash)}</span>
+        </div>
+        
+        <div class="totals-row grand-total">
+          <span>TOTAL ENTRADAS</span>
+          <span>${formatCurrency(totalRevenue)}</span>
+        </div>
+
+        <div class="divider"></div>
+        
+        <div class="font-bold" style="margin-bottom: 5px;">SAÍDAS (DESPESAS)</div>
+        ${expensesHtml}
+        
+        <div class="totals-row grand-total" style="color: #444;">
+          <span>TOTAL SAÍDAS</span>
+          <span>-${formatCurrency(totalExpenses)}</span>
+        </div>
+
+        <div class="divider"></div>
+        
+        <div class="totals-row grand-total" style="font-size: 18px;">
+          <span>LUCRO LÍQUIDO</span>
+          <span>${formatCurrency(netProfit)}</span>
+        </div>
+
+        <div class="divider"></div>
+        
+        <div class="text-center" style="margin-top: 10px; font-size: 12px;">
+          <div>Total de pedidos válidos: ${validOrders.length}</div>
+          <div>Pedidos cancelados: ${orders.length - validOrders.length}</div>
+        </div>
+        
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
               setTimeout(function() { window.close(); }, 500);
             }, 500);
           }

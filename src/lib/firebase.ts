@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp, type FirebaseOptions, type FirebaseApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, type Auth } from "firebase/auth";
-import { getFirestore, type Firestore } from "firebase/firestore";
+import { getFirestore, enableMultiTabIndexedDbPersistence, type Firestore } from "firebase/firestore";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
 import { getAnalytics, isSupported, type Analytics } from "firebase/analytics";
 
@@ -43,6 +43,12 @@ export const firebaseApp: FirebaseApp | undefined = canInitFirebase ? initFireba
 export const auth = (firebaseApp ? getAuth(firebaseApp) : ({} as Auth)) as Auth;
 export const db = (firebaseApp ? getFirestore(firebaseApp) : ({} as Firestore)) as Firestore;
 export const storage = (firebaseApp ? getStorage(firebaseApp) : ({} as FirebaseStorage)) as FirebaseStorage;
+
+if (typeof window !== "undefined" && firebaseApp) {
+  enableMultiTabIndexedDbPersistence(db).catch((err) => {
+    console.warn("Firestore persistence error:", err.code);
+  });
+}
 
 // Único método de login do app (cliente e admin). Quem vira admin ou não é
 // decidido depois, checando a coleção `admins` no Firestore — não existe

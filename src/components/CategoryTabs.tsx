@@ -1,8 +1,9 @@
 "use client";
 
+import { memo } from "react";
 import clsx from "clsx";
 
-export function CategoryTabs({
+export const CategoryTabs = memo(function CategoryTabs({
   categories,
   active,
   onSelect,
@@ -33,4 +34,4 @@ export function CategoryTabs({
       </div>
     </div>
   );
-}
+});
