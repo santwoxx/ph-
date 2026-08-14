@@ -3,16 +3,20 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { doc, getDoc } from "firebase/firestore";
 import toast from "react-hot-toast";
-import { ShieldCheck, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
+import { useSettings } from "@/context/SettingsContext";
+import { isDataUrl } from "@/lib/image";
 import { GoogleIcon } from "@/components/GoogleIcon";
 
 export default function AdminLoginPage() {
   const router = useRouter();
   const { signInWithGoogle } = useAuth();
+  const { settings } = useSettings();
   const [loading, setLoading] = useState(false);
 
   async function handleGoogleSignIn() {
@@ -51,8 +55,14 @@ export default function AdminLoginPage() {
           <ArrowLeft className="h-4 w-4" /> Voltar ao site
         </Link>
 
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-acai-gradient text-white shadow-soft">
-          <ShieldCheck className="h-6 w-6" />
+        <div className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-acai-gradient text-white shadow-soft">
+          <Image
+            src={settings.logoUrl || "/logo-ph.png"}
+            alt={settings.storeName || "Logo"}
+            fill
+            unoptimized={isDataUrl(settings.logoUrl)}
+            className="object-cover"
+          />
         </div>
         <h1 className="mt-4 font-display text-2xl font-bold text-acai-950">
           Painel administrativo

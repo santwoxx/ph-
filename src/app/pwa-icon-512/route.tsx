@@ -1,9 +1,11 @@
 import { ImageResponse } from "next/og";
+import { getStoreLogoDataUrl } from "@/lib/server/store-logo";
 
 export const dynamic = "force-static";
 export const contentType = "image/png";
 
-export function GET() {
+export async function GET() {
+  const logo = await getStoreLogoDataUrl();
   return new ImageResponse(
     (
       <div
@@ -17,7 +19,12 @@ export function GET() {
           borderRadius: 108,
         }}
       >
-        <div style={{ display: "flex", fontSize: 288 }}>🍇</div>
+        {logo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={logo} alt="" width={448} height={448} style={{ objectFit: "cover", borderRadius: 92 }} />
+        ) : (
+          <div style={{ display: "flex", fontSize: 288 }}>🍇</div>
+        )}
       </div>
     ),
     { width: 512, height: 512 }

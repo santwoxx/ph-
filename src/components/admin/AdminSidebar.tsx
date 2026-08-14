@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import {
@@ -15,6 +16,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
+import { isDataUrl } from "@/lib/image";
 
 const links = [
   { href: "/admin", label: "Visão geral", icon: LayoutDashboard, exact: true },
@@ -33,8 +35,14 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="flex h-full w-64 flex-col bg-acai-950 text-white">
       <div className="flex items-center gap-2.5 px-6 py-6">
-        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-acai-gradient text-base">
-          🍇
+        <span className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-acai-gradient text-base">
+          <Image
+            src={settings.logoUrl || "/logo-ph.png"}
+            alt={settings.storeName || "Logo"}
+            fill
+            unoptimized={isDataUrl(settings.logoUrl)}
+            className="object-cover"
+          />
         </span>
         <div className="leading-tight">
           <p className="font-display text-sm font-bold">{settings.storeName}</p>

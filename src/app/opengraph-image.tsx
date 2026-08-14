@@ -1,8 +1,7 @@
 import { ImageResponse } from "next/og";
+import { getStoreBranding } from "@/lib/server/store-logo";
 
-export const runtime = "edge";
-
-export const alt = "Açaí do Bairro | Cardápio Digital";
+export const alt = "Açaí do PH | Cardápio Digital";
 export const size = {
   width: 1200,
   height: 630,
@@ -11,6 +10,7 @@ export const size = {
 export const contentType = "image/png";
 
 export default async function Image() {
+  const { logoUrl, storeName, tagline } = await getStoreBranding();
   return new ImageResponse(
     (
       <div
@@ -39,11 +39,17 @@ export default async function Image() {
             marginBottom: "30px",
             fontSize: "70px",
             boxShadow: "0 10px 40px rgba(0,0,0,0.3)",
+            overflow: "hidden",
           }}
         >
-          🍇
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logoUrl} alt="" width={140} height={140} style={{ objectFit: "cover" }} />
+          ) : (
+            "🍇"
+          )}
         </div>
-        
+
         <h1
           style={{
             fontSize: "72px",
@@ -54,9 +60,9 @@ export default async function Image() {
             letterSpacing: "-0.02em",
           }}
         >
-          Açaí do Bairro
+          {storeName}
         </h1>
-        
+
         <p
           style={{
             fontSize: "36px",
@@ -67,7 +73,7 @@ export default async function Image() {
             fontWeight: 500,
           }}
         >
-          O açaí mais cremoso da cidade, na porta da sua casa.
+          {tagline}
         </p>
 
         <div
