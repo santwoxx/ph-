@@ -10,7 +10,7 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   logoUrl: "",
   bannerUrl: "",
   whatsapp: process.env.NEXT_PUBLIC_STORE_WHATSAPP || "",
-  instagram: "",
+  instagram: "acaidoph__",
   address: "",
   openingHours: "Todos os dias, 12h às 22h",
   deliveryFee: 6,

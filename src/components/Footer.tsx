@@ -33,9 +33,14 @@ export function Footer() {
             </p>
           )}
           {settings.instagram && (
-            <p className="flex items-center gap-2">
-              <Instagram className="h-4 w-4 shrink-0 text-berry-400" /> {settings.instagram}
-            </p>
+            <a
+              href={`https://instagram.com/${settings.instagram.replace('@', '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 hover:text-acai-100 transition-colors"
+            >
+              <Instagram className="h-4 w-4 shrink-0 text-berry-400" /> @{settings.instagram.replace('@', '')}
+            </a>
           )}
         </div>
 

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { ShoppingCart, User, LogOut, ClipboardList, Sun, Moon } from "lucide-react";
+import { ShoppingCart, User, LogOut, ClipboardList, Sun, Moon, Instagram } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useTheme } from "next-themes";
 import { useCartStore } from "@/store/cart";
@@ -103,6 +103,18 @@ export function Header() {
           )}
 
           <NotificationBell />
+
+          {settings.instagram && (
+            <a
+              href={`https://instagram.com/${settings.instagram.replace('@', '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-acai-100 text-acai-800 transition hover:border-acai-300 dark:border-acai-800 dark:text-acai-100 dark:hover:border-acai-600 sm:h-12 sm:w-12"
+              aria-label="Instagram"
+            >
+              <Instagram className="h-5 w-5" />
+            </a>
+          )}
 
           {mounted && (
             <button
