@@ -162,8 +162,8 @@ export function printCashReport(orders: Order[], expenses: Expense[], settings: 
 
   validOrders.forEach(o => {
     if (o.paymentMethod === "pix") totalPix += o.total;
-    else if (o.paymentMethod === "credit" || o.paymentMethod === "debit" || o.paymentMethod === "meal") totalCard += o.total;
-    else if (o.paymentMethod === "cash") totalCash += o.total;
+    else if (o.paymentMethod === "cartao") totalCard += o.total;
+    else if (o.paymentMethod === "dinheiro") totalCash += o.total;
   });
 
   const totalRevenue = totalPix + totalCard + totalCash;
