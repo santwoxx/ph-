@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/Input";
 import { FullPageSpinner } from "@/components/ui/Spinner";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeToCustomerOrders, updateOrder } from "@/lib/data/orders";
+import { getProduct } from "@/lib/data/products";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import type { Order } from "@/lib/types";
 import { useCartStore } from "@/store/cart";
@@ -22,6 +23,7 @@ export default function MeusPedidosPage() {
   const { user, loading } = useAuth();
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [repeatingId, setRepeatingId] = useState<string | null>(null);
   const { clear, addItem } = useCartStore();
 
   const [ratingOpen, setRatingOpen] = useState<string | null>(null);
@@ -35,22 +37,61 @@ export default function MeusPedidosPage() {
     return () => unsub();
   }, [user]);
 
-  function handleRepeatOrder(order: Order) {
-    clear();
-    order.items.forEach((item) => {
-      addItem({
-        productId: item.productId,
-        name: item.name,
-        imageUrl: "",
-        size: item.size,
-        unitPrice: item.unitPrice,
-        qty: item.qty,
-        extras: item.extras,
-        notes: item.notes,
+  // Não readicionamos os itens direto do histórico: preço, disponibilidade
+  // e até o produto em si podem ter mudado desde a compra original. Por
+  // isso buscamos o estado atual de cada produto no Firestore antes de
+  // montar o carrinho, e avisamos o cliente se algo não estiver mais
+  // disponível — em vez de deixá-lo fechar um pedido com valores errados.
+  async function handleRepeatOrder(order: Order) {
+    setRepeatingId(order.id);
+    try {
+      const current = await Promise.all(
+        order.items.map((item) => getProduct(item.productId))
+      );
+
+      clear();
+      const unavailable: string[] = [];
+      let addedCount = 0;
+
+      order.items.forEach((item, i) => {
+        const product = current[i];
+        if (!product || !product.available) {
+          unavailable.push(item.name);
+          return;
+        }
+        const matchedSize = product.sizes.find((s) => s.label === item.size);
+        const size = matchedSize ?? product.sizes[0] ?? { label: "Único", price: product.basePrice };
+        addItem({
+          productId: product.id,
+          name: product.name,
+          imageUrl: product.imageUrl,
+          size: size.label,
+          unitPrice: size.price,
+          qty: item.qty,
+          extras: item.extras,
+          notes: item.notes,
+        });
+        addedCount++;
       });
-    });
-    router.push("/checkout");
-    toast.success("Itens do pedido recuperados no carrinho!");
+
+      if (addedCount === 0) {
+        toast.error("Nenhum item deste pedido está disponível no momento.");
+        return;
+      }
+      if (unavailable.length > 0) {
+        toast(`Alguns itens não estão mais disponíveis e foram removidos: ${unavailable.join(", ")}`, {
+          icon: "⚠️",
+          duration: 6000,
+        });
+      }
+      router.push("/checkout");
+      toast.success("Itens do pedido recuperados no carrinho com os preços atuais!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Não foi possível repetir o pedido agora. Tente novamente.");
+    } finally {
+      setRepeatingId(null);
+    }
   }
 
   async function handleSubmitRating(orderId: string) {
@@ -181,9 +222,11 @@ export default function MeusPedidosPage() {
                       <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-t border-acai-100 pt-4 dark:border-acai-800">
                         <button
                           onClick={() => handleRepeatOrder(order)}
-                          className="flex items-center gap-2 rounded-xl bg-acai-50 px-4 py-2 text-sm font-semibold text-acai-700 transition hover:bg-acai-100 dark:bg-acai-800 dark:text-acai-200 dark:hover:bg-acai-700"
+                          disabled={repeatingId === order.id}
+                          className="flex items-center gap-2 rounded-xl bg-acai-50 px-4 py-2 text-sm font-semibold text-acai-700 transition hover:bg-acai-100 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-acai-800 dark:text-acai-200 dark:hover:bg-acai-700"
                         >
-                          <RotateCcw className="h-4 w-4" /> Repetir pedido
+                          <RotateCcw className={`h-4 w-4 ${repeatingId === order.id ? "animate-spin" : ""}`} />
+                          {repeatingId === order.id ? "Verificando..." : "Repetir pedido"}
                         </button>
 
                         {order.status === "delivered" && (

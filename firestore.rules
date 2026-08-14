@@ -61,7 +61,10 @@ service cloud.firestore {
     // ---------- orders ----------
     // Cliente autenticado pode criar pedidos vinculados ao próprio uid
     // e ler apenas os seus. Alterar status, cancelar, excluir e ver
-    // todos os pedidos é exclusivo do admin (painel financeiro).
+    // todos os pedidos é exclusivo do admin (painel financeiro) — com uma
+    // exceção: o próprio cliente pode avaliar (nota + comentário) um
+    // pedido seu já entregue, uma única vez, sem poder mexer em mais
+    // nenhum outro campo do pedido.
     match /orders/{orderId} {
       allow create: if isSignedIn() &&
         request.resource.data.customerUid == request.auth.uid &&
@@ -74,16 +77,40 @@ service cloud.firestore {
       allow read: if isAdmin() ||
         (isSignedIn() && resource.data.customerUid == request.auth.uid);
 
-      allow update, delete: if isAdmin();
+      allow update: if isAdmin() ||
+        (isSignedIn() &&
+          resource.data.customerUid == request.auth.uid &&
+          resource.data.status == 'delivered' &&
+          !('rating' in resource.data) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(["rating", "feedback", "updatedAt"]) &&
+          request.resource.data.rating is number &&
+          request.resource.data.rating >= 1 && request.resource.data.rating <= 5);
+
+      allow delete: if isAdmin();
     }
 
     // ---------- coupons ----------
-    // Cupom de desconto (código, tipo, valor, pedido mínimo). Leitura livre
-    // pra qualquer cliente logado conferir o código no checkout; só admin
-    // cria, ativa/desativa ou remove.
+    // Cupom de desconto (código, tipo, valor, pedido mínimo, limite de uso).
+    // Leitura livre pra qualquer cliente conferir o código no checkout; só
+    // admin cria, ativa/desativa ou remove. Uma exceção pontual: ao usar um
+    // cupom, o cliente pode incrementar `usedCount` em exatamente 1 (nunca
+    // mais que isso, nunca além do limite, nunca em cupom inativo) — é o
+    // único jeito de controlar quantas vezes um cupom já foi usado sem um
+    // backend próprio.
+    function couponUsedCount(data) {
+      return ('usedCount' in data) ? data.usedCount : 0;
+    }
+
     match /coupons/{code} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow update: if isAdmin() ||
+        (isSignedIn() &&
+          resource.data.active == true &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(["usedCount"]) &&
+          request.resource.data.usedCount == couponUsedCount(resource.data) + 1 &&
+          (!('maxUses' in resource.data) || resource.data.maxUses == 0 ||
+            couponUsedCount(resource.data) < resource.data.maxUses));
+      allow create, delete: if isAdmin();
     }
 
     // ---------- expenses ----------

@@ -1,6 +1,24 @@
 import { formatCurrency, formatDateTime } from "./format";
 import { PAYMENT_METHOD_LABEL, type Order, type StoreSettings, type Expense } from "./types";
 
+// O pedido é escrito no Firestore diretamente pelo SDK do cliente (sem
+// backend validando o conteúdo), então todo campo de texto — nome, telefone,
+// endereço, observações, nome do item — precisa ser tratado como não
+// confiável antes de entrar no HTML da comanda/relatório impressos via
+// document.write. Sem isso, um pedido malicioso vira XSS rodando na sessão
+// autenticada de quem imprime (o admin).
+function escapeHtml(value: unknown): string {
+  return String(value ?? "").replace(/[&<>"']/g, (ch) => {
+    switch (ch) {
+      case "&": return "&amp;";
+      case "<": return "&lt;";
+      case ">": return "&gt;";
+      case '"': return "&quot;";
+      default: return "&#39;";
+    }
+  });
+}
+
 export function printOrderReceipt(order: Order, settings: StoreSettings) {
   const printWindow = window.open('', '_blank', 'width=400,height=600');
   if (!printWindow) {
@@ -10,8 +28,8 @@ export function printOrderReceipt(order: Order, settings: StoreSettings) {
 
   const itemsHtml = order.items.map(item => `
     <div class="item">
-      <div class="item-name">${item.qty}x ${item.name} (${item.size})</div>
-      ${item.extras.length > 0 ? `<div class="item-extras">+ ${item.extras.map(e => e.name).join(', ')}</div>` : ''}
+      <div class="item-name">${escapeHtml(item.qty)}x ${escapeHtml(item.name)} (${escapeHtml(item.size)})</div>
+      ${item.extras.length > 0 ? `<div class="item-extras">+ ${escapeHtml(item.extras.map(e => e.name).join(', '))}</div>` : ''}
       <div class="item-price">${formatCurrency(item.lineTotal)}</div>
     </div>
   `).join('');
@@ -50,45 +68,45 @@ export function printOrderReceipt(order: Order, settings: StoreSettings) {
       </head>
       <body>
         <div class="text-center">
-          <div class="store-name">${settings.storeName}</div>
-          ${settings.whatsapp ? `<div>${settings.whatsapp}</div>` : ''}
+          <div class="store-name">${escapeHtml(settings.storeName)}</div>
+          ${settings.whatsapp ? `<div>${escapeHtml(settings.whatsapp)}</div>` : ''}
         </div>
-        
+
         <div class="divider"></div>
-        
+
         <div class="order-info">
-          <div class="font-bold text-center" style="font-size: 16px;">PEDIDO #${order.id.slice(-6).toUpperCase()}</div>
+          <div class="font-bold text-center" style="font-size: 16px;">PEDIDO #${escapeHtml(order.id.slice(-6).toUpperCase())}</div>
           <div style="margin-top: 5px;">Data: ${formatDateTime(order.createdAt)}</div>
           <div>Tipo: <span class="font-bold">${order.deliveryType === 'delivery' ? 'ENTREGA' : 'RETIRADA'}</span></div>
-          ${order.scheduledTo ? `<div>Agendado para: <span class="font-bold">${order.scheduledTo}</span></div>` : ''}
+          ${order.scheduledTo ? `<div>Agendado para: <span class="font-bold">${escapeHtml(order.scheduledTo)}</span></div>` : ''}
         </div>
-        
+
         <div class="divider"></div>
-        
+
         <div class="customer-info">
           <div class="font-bold">CLIENTE:</div>
-          <div>${order.customerName}</div>
-          <div>Fone: ${order.customerPhone}</div>
+          <div>${escapeHtml(order.customerName)}</div>
+          <div>Fone: ${escapeHtml(order.customerPhone)}</div>
           ${order.deliveryType === 'delivery' && order.address ? `
             <div style="margin-top: 5px;">
               <div class="font-bold">ENDEREÇO DE ENTREGA:</div>
-              <div>${order.address.street}, ${order.address.number}</div>
-              <div>Bairro: ${order.address.district}</div>
-              ${order.address.complement ? `<div>Comp: ${order.address.complement}</div>` : ''}
-              <div>${order.address.city}</div>
+              <div>${escapeHtml(order.address.street)}, ${escapeHtml(order.address.number)}</div>
+              <div>Bairro: ${escapeHtml(order.address.district)}</div>
+              ${order.address.complement ? `<div>Comp: ${escapeHtml(order.address.complement)}</div>` : ''}
+              <div>${escapeHtml(order.address.city)}</div>
             </div>
           ` : ''}
         </div>
-        
+
         <div class="divider"></div>
-        
+
         <div class="font-bold" style="margin-bottom: 5px;">ITENS DO PEDIDO:</div>
         ${itemsHtml}
-        
+
         ${order.notes ? `
           <div class="divider"></div>
           <div class="font-bold">OBSERVAÇÕES DO CLIENTE:</div>
-          <div style="border: 1px solid #000; padding: 5px; margin-top: 5px;">${order.notes}</div>
+          <div style="border: 1px solid #000; padding: 5px; margin-top: 5px;">${escapeHtml(order.notes)}</div>
         ` : ''}
 
         <div class="divider"></div>
@@ -170,10 +188,10 @@ export function printCashReport(orders: Order[], expenses: Expense[], settings: 
   const totalExpenses = expenses.reduce((acc, e) => acc + e.amount, 0);
   const netProfit = totalRevenue - totalExpenses;
 
-  const expensesHtml = expenses.length > 0 
+  const expensesHtml = expenses.length > 0
     ? expenses.map(e => `
       <div class="totals-row" style="margin-bottom: 2px;">
-        <span style="font-size: 12px;">${e.description}</span>
+        <span style="font-size: 12px;">${escapeHtml(e.description)}</span>
         <span style="font-size: 12px;">${formatCurrency(e.amount)}</span>
       </div>
     `).join('')
@@ -205,14 +223,14 @@ export function printCashReport(orders: Order[], expenses: Expense[], settings: 
       </head>
       <body>
         <div class="text-center">
-          <div class="store-name">${settings.storeName}</div>
+          <div class="store-name">${escapeHtml(settings.storeName)}</div>
         </div>
-        
+
         <div class="divider"></div>
-        
+
         <div class="text-center">
           <div class="font-bold" style="font-size: 16px;">FECHAMENTO DE CAIXA</div>
-          <div style="margin-top: 5px;">Data: ${dateLabel}</div>
+          <div style="margin-top: 5px;">Data: ${escapeHtml(dateLabel)}</div>
         </div>
         
         <div class="divider"></div>

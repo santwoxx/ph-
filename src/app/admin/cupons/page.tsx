@@ -14,7 +14,7 @@ import {
   deleteCoupon,
 } from "@/lib/data/coupons";
 import type { Coupon } from "@/lib/types";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatDate } from "@/lib/format";
 
 export default function AdminCouponsPage() {
   const [coupons, setCoupons] = useState<Coupon[] | null>(null);
@@ -25,6 +25,8 @@ export default function AdminCouponsPage() {
   const [type, setType] = useState<"fixed" | "percentage">("percentage");
   const [value, setValue] = useState("");
   const [minOrder, setMinOrder] = useState("");
+  const [maxUses, setMaxUses] = useState("");
+  const [expiresAt, setExpiresAt] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -47,17 +49,22 @@ export default function AdminCouponsPage() {
 
     setSaving(true);
     try {
+      const maxUsesNum = maxUses ? Number(maxUses) : undefined;
       await createCoupon({
         id: code.trim().toUpperCase(),
         type,
         value: val,
         minOrder: min > 0 ? min : undefined,
         active: true,
+        maxUses: maxUsesNum && maxUsesNum > 0 ? maxUsesNum : undefined,
+        expiresAt: expiresAt || undefined,
       });
       toast.success("Cupom criado com sucesso!");
       setCode("");
       setValue("");
       setMinOrder("");
+      setMaxUses("");
+      setExpiresAt("");
     } catch (err) {
       console.error(err);
       toast.error("Não foi possível criar o cupom.");
@@ -141,6 +148,23 @@ export default function AdminCouponsPage() {
               onChange={(e) => setMinOrder(e.target.value)}
               placeholder="0,00"
             />
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label="Limite de usos - Opcional"
+                type="number"
+                min={0}
+                step="1"
+                value={maxUses}
+                onChange={(e) => setMaxUses(e.target.value)}
+                placeholder="Sem limite"
+              />
+              <Input
+                label="Validade - Opcional"
+                type="date"
+                value={expiresAt}
+                onChange={(e) => setExpiresAt(e.target.value)}
+              />
+            </div>
             <Button type="submit" fullWidth loading={saving}>
               <Plus className="h-4 w-4" /> Criar cupom
             </Button>
@@ -174,6 +198,10 @@ export default function AdminCouponsPage() {
                       <p className="text-xs text-acai-500">
                         {coupon.type === "percentage" ? `${coupon.value}% de desconto` : `${formatCurrency(coupon.value)} de desconto`}
                         {coupon.minOrder ? ` (Min. ${formatCurrency(coupon.minOrder)})` : ""}
+                      </p>
+                      <p className="mt-0.5 text-xs text-acai-400">
+                        {coupon.maxUses ? `${coupon.usedCount ?? 0}/${coupon.maxUses} usos` : `${coupon.usedCount ?? 0} usos`}
+                        {coupon.expiresAt ? ` · válido até ${formatDate(new Date(coupon.expiresAt + "T00:00:00").getTime())}` : ""}
                       </p>
                     </div>
                   </div>

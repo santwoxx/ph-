@@ -29,6 +29,32 @@ const FILTERS: { key: OrderStatus | "all"; label: string }[] = [
   { key: "cancelled", label: "Cancelado" },
 ];
 
+function playNewOrderDing(ctx: AudioContext) {
+  // Ding 1
+  const osc1 = ctx.createOscillator();
+  const gain1 = ctx.createGain();
+  osc1.type = "sine";
+  osc1.frequency.setValueAtTime(880, ctx.currentTime);
+  gain1.gain.setValueAtTime(0.5, ctx.currentTime);
+  gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+  osc1.connect(gain1);
+  gain1.connect(ctx.destination);
+  osc1.start();
+  osc1.stop(ctx.currentTime + 0.3);
+
+  // Ding 2 (Chord)
+  const osc2 = ctx.createOscillator();
+  const gain2 = ctx.createGain();
+  osc2.type = "sine";
+  osc2.frequency.setValueAtTime(1108.73, ctx.currentTime + 0.1); // C#6
+  gain2.gain.setValueAtTime(0.5, ctx.currentTime + 0.1);
+  gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+  osc2.connect(gain2);
+  gain2.connect(ctx.destination);
+  osc2.start(ctx.currentTime + 0.1);
+  osc2.stop(ctx.currentTime + 0.5);
+}
+
 export default function AdminOrdersPage() {
   const { settings } = useSettings();
   const [orders, setOrders] = useState<Order[] | null>(null);
@@ -38,24 +64,49 @@ export default function AdminOrdersPage() {
 
   const initialLoadRef = useRef(true);
   const maxTimeRef = useRef<number>(0);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  // Navegadores só liberam áudio automático depois de alguma interação do
+  // usuário na página — criar o AudioContext aqui (uma vez, reaproveitado) e
+  // destravá-lo no primeiro clique/tecla garante que o "ding" realmente
+  // toque quando o pedido chegar, em vez de ficar mudo num AudioContext
+  // suspenso criado na hora.
+  useEffect(() => {
+    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    audioCtxRef.current = ctx;
+
+    const unlock = () => {
+      if (ctx.state === "suspended") ctx.resume().catch(() => {});
+    };
+    document.addEventListener("click", unlock);
+    document.addEventListener("keydown", unlock);
+
+    return () => {
+      document.removeEventListener("click", unlock);
+      document.removeEventListener("keydown", unlock);
+      ctx.close().catch(() => {});
+    };
+  }, []);
 
   useEffect(() => {
     const unsub = subscribeToAllOrders((newOrders) => {
       setOrders(newOrders);
-      
+
       if (newOrders.length === 0) {
         initialLoadRef.current = false;
         return;
       }
 
       const currentMax = Math.max(...newOrders.map(o => o.createdAt));
-      
+
       if (initialLoadRef.current) {
         initialLoadRef.current = false;
         maxTimeRef.current = currentMax;
       } else if (currentMax > maxTimeRef.current) {
         maxTimeRef.current = currentMax;
-        
+
         // Notify
         toast("🔔 Novo pedido recebido!", {
           duration: 6000,
@@ -64,40 +115,20 @@ export default function AdminOrdersPage() {
 
         // Play sound via AudioContext (Zero infra)
         try {
-          const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-          if (AudioContext) {
-            const ctx = new AudioContext();
-            
-            // Ding 1
-            const osc1 = ctx.createOscillator();
-            const gain1 = ctx.createGain();
-            osc1.type = "sine";
-            osc1.frequency.setValueAtTime(880, ctx.currentTime);
-            gain1.gain.setValueAtTime(0.5, ctx.currentTime);
-            gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-            osc1.connect(gain1);
-            gain1.connect(ctx.destination);
-            osc1.start();
-            osc1.stop(ctx.currentTime + 0.3);
-            
-            // Ding 2 (Chord)
-            const osc2 = ctx.createOscillator();
-            const gain2 = ctx.createGain();
-            osc2.type = "sine";
-            osc2.frequency.setValueAtTime(1108.73, ctx.currentTime + 0.1); // C#6
-            gain2.gain.setValueAtTime(0.5, ctx.currentTime + 0.1);
-            gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-            osc2.connect(gain2);
-            gain2.connect(ctx.destination);
-            osc2.start(ctx.currentTime + 0.1);
-            osc2.stop(ctx.currentTime + 0.5);
+          const ctx = audioCtxRef.current;
+          if (ctx) {
+            if (ctx.state === "suspended") {
+              ctx.resume().then(() => playNewOrderDing(ctx)).catch(() => {});
+            } else {
+              playNewOrderDing(ctx);
+            }
           }
         } catch(e) {
           console.error("Audio block", e);
         }
       }
     }, () => setOrders([]));
-    
+
     return () => unsub();
   }, []);
 

@@ -4,6 +4,7 @@ import {
   updateDoc,
   deleteDoc,
   doc,
+  getDoc,
   onSnapshot,
   orderBy,
   query,
@@ -53,6 +54,14 @@ export function subscribeToProducts(
     },
     (err) => onError?.(err)
   );
+}
+
+// Leitura avulsa de um produto (sem assinatura em tempo real) — usada pra
+// revalidar preço/disponibilidade atual, ex: ao repetir um pedido antigo.
+export async function getProduct(id: string): Promise<Product | null> {
+  const snap = await getDoc(doc(db, COLLECTION, id));
+  if (!snap.exists()) return null;
+  return mapProduct(snap.id, snap.data());
 }
 
 export type ProductInput = Omit<

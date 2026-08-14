@@ -24,8 +24,8 @@ import { useSettings } from "@/context/SettingsContext";
 import { useCartStore } from "@/store/cart";
 import { getUserProfile, updateUserProfile } from "@/lib/data/users";
 import { createOrder } from "@/lib/data/orders";
-import { getCoupon } from "@/lib/data/coupons";
-import { formatCurrency } from "@/lib/format";
+import { getCoupon, redeemCoupon } from "@/lib/data/coupons";
+import { formatCurrency, todayISO } from "@/lib/format";
 import { checkIsStoreOpen } from "@/lib/schedule";
 import type { DeliveryType, PaymentMethod, Coupon, OrderAddress } from "@/lib/types";
 
@@ -147,6 +147,16 @@ export default function CheckoutPage() {
         setAppliedCoupon(null);
         return;
       }
+      if (coupon.expiresAt && coupon.expiresAt < todayISO()) {
+        setCouponError("Este cupom expirou.");
+        setAppliedCoupon(null);
+        return;
+      }
+      if (coupon.maxUses && coupon.maxUses > 0 && (coupon.usedCount ?? 0) >= coupon.maxUses) {
+        setCouponError("Este cupom atingiu o limite de usos.");
+        setAppliedCoupon(null);
+        return;
+      }
       if (coupon.minOrder && sub < coupon.minOrder) {
         setCouponError(`Pedido mínimo para este cupom é ${formatCurrency(coupon.minOrder)}`);
         setAppliedCoupon(null);
@@ -231,6 +241,12 @@ export default function CheckoutPage() {
       };
 
       const ref = await createOrder(orderData);
+
+      if (appliedCoupon) {
+        // Best effort: o pedido já foi criado, então uma falha aqui não pode
+        // atrapalhar o cliente — só perdemos a contagem daquele uso.
+        redeemCoupon(appliedCoupon.id).catch((err) => console.error("Falha ao registrar uso do cupom:", err));
+      }
 
       setPlacedOrderDetails({ id: ref.id, ...orderData });
       clear();

@@ -126,6 +126,9 @@ export type Coupon = {
   value: number;
   minOrder?: number;
   active: boolean;
+  maxUses?: number; // 0 ou ausente = sem limite de usos
+  usedCount?: number; // ausente = ainda não usado (trate como 0)
+  expiresAt?: string; // "YYYY-MM-DD", ausente = sem validade
   createdAt: number;
 };
 
