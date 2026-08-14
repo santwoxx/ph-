@@ -20,7 +20,6 @@ export default function AdminProductsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [deleting, setDeleting] = useState<Product | null>(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     const unsub = subscribeToProducts(setProducts, () => setProducts([]));
@@ -37,20 +36,24 @@ export default function AdminProductsPage() {
     setFormOpen(true);
   }
 
-  async function confirmDelete() {
+  // Fecha o diálogo na hora — a lista já reflete a exclusão imediatamente
+  // (o Firestore aplica a escrita no cache local antes mesmo de confirmar
+  // com o servidor), então não faz sentido segurar a tela esperando a
+  // confirmação de rede. Se a exclusão falhar de verdade, o erro aparece
+  // depois em um toast, sem travar a interação.
+  function confirmDelete() {
     if (!deleting) return;
-    setDeleteLoading(true);
-    try {
-      await deleteProduct(deleting.id);
-      if (deleting.imagePath) await deleteImageByPath(deleting.imagePath);
-      toast.success("Produto removido.");
-      setDeleting(null);
-    } catch (err) {
-      console.error(err);
-      toast.error("Não foi possível remover o produto.");
-    } finally {
-      setDeleteLoading(false);
-    }
+    const product = deleting;
+    setDeleting(null);
+    deleteProduct(product.id)
+      .then(() => {
+        if (product.imagePath) return deleteImageByPath(product.imagePath);
+      })
+      .then(() => toast.success("Produto removido."))
+      .catch((err) => {
+        console.error(err);
+        toast.error(`Não foi possível remover "${product.name}". Tente novamente.`);
+      });
   }
 
   return (
@@ -149,7 +152,6 @@ export default function AdminProductsPage() {
         description={`Tem certeza que deseja remover "${deleting?.name}"? Essa ação não pode ser desfeita.`}
         confirmLabel="Remover"
         danger
-        loading={deleteLoading}
         onConfirm={confirmDelete}
         onCancel={() => setDeleting(null)}
       />

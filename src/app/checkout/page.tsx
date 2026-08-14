@@ -218,7 +218,12 @@ export default function CheckoutPage() {
       if (deliveryType === "delivery" && saveAddress && selectedAddressIndex === "new") {
         const newAddress = { ...orderAddress!, tag: saveAddressTag || "Casa" };
         const newAddressesList = [...savedAddresses, newAddress];
-        await updateUserProfile(user.uid, { addresses: newAddressesList });
+        // Não bloqueia a criação do pedido: salvar o endereço no perfil é só
+        // conveniência para a próxima compra, não precisa esperar isso pra
+        // então começar a criar o pedido (o que dobrava o tempo de espera).
+        updateUserProfile(user.uid, { addresses: newAddressesList }).catch((err) =>
+          console.error("Falha ao salvar endereço no perfil:", err)
+        );
         setSavedAddresses(newAddressesList);
       }
 

@@ -8,7 +8,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
 import { createProduct, updateProduct } from "@/lib/data/products";
-import { uploadProductImage, uploadExtraOptionImage, deleteImageByPath } from "@/lib/data/upload";
+import { uploadProductImage, uploadExtraOptionImage } from "@/lib/data/upload";
 import type { Product, ProductSize, ProductExtra, ExtraGroup } from "@/lib/types";
 
 function tempId() {
@@ -172,60 +172,63 @@ export function ProductFormModal({
     }
 
     setSaving(true);
-    try {
-      let imageUrl = product?.imageUrl ?? "";
-      let imagePath = product?.imagePath ?? "";
+    let imageUrl = product?.imageUrl ?? "";
+    let imagePath = product?.imagePath ?? "";
 
-      if (imageFile) {
+    if (imageFile) {
+      try {
         const folderId = product?.id ?? tempId();
         const uploaded = await uploadProductImage(folderId, imageFile);
-        if (product?.imagePath) {
-          await deleteImageByPath(product.imagePath);
-        }
         imageUrl = uploaded.url;
         imagePath = uploaded.path;
+      } catch (err) {
+        console.error(err);
+        toast.error("Não foi possível processar a foto do produto.");
+        setSaving(false);
+        return;
       }
-
-      const payload = {
-        name: name.trim(),
-        description: description.trim(),
-        category: finalCategory,
-        imageUrl,
-        imagePath,
-        basePrice: Number(basePrice) || 0,
-        sizes: sizes.filter((s) => s.label.trim()).map((s) => ({ ...s, price: Number(s.price) || 0 })),
-        extras: extras
-          .filter((ex) => ex.name.trim())
-          .map((ex) => ({ ...ex, price: Number(ex.price) || 0 })),
-        extraGroups: extraGroups
-          .filter((g) => g.name.trim())
-          .map((g) => ({
-            ...g,
-            minSelect: Math.max(0, Number(g.minSelect) || 0),
-            maxSelect: Math.max(0, Number(g.maxSelect) || 0),
-            items: g.items
-              .filter((it) => it.name.trim())
-              .map((it) => ({ ...it, price: Number(it.price) || 0 })),
-          })),
-        available,
-        featured,
-        order: product?.order ?? Date.now(),
-      };
-
-      if (isEdit && product) {
-        await updateProduct(product.id, payload);
-        toast.success("Produto atualizado!");
-      } else {
-        await createProduct(payload);
-        toast.success("Produto cadastrado!");
-      }
-      onClose();
-    } catch (err) {
-      console.error(err);
-      toast.error("Não foi possível salvar o produto.");
-    } finally {
-      setSaving(false);
     }
+
+    const payload = {
+      name: name.trim(),
+      description: description.trim(),
+      category: finalCategory,
+      imageUrl,
+      imagePath,
+      basePrice: Number(basePrice) || 0,
+      sizes: sizes.filter((s) => s.label.trim()).map((s) => ({ ...s, price: Number(s.price) || 0 })),
+      extras: extras
+        .filter((ex) => ex.name.trim())
+        .map((ex) => ({ ...ex, price: Number(ex.price) || 0 })),
+      extraGroups: extraGroups
+        .filter((g) => g.name.trim())
+        .map((g) => ({
+          ...g,
+          minSelect: Math.max(0, Number(g.minSelect) || 0),
+          maxSelect: Math.max(0, Number(g.maxSelect) || 0),
+          items: g.items
+            .filter((it) => it.name.trim())
+            .map((it) => ({ ...it, price: Number(it.price) || 0 })),
+        })),
+      available,
+      featured,
+      order: product?.order ?? Date.now(),
+    };
+
+    // Fecha o modal assim que os dados estão prontos — a lista por trás já
+    // reflete a mudança na hora (o Firestore aplica a escrita no cache
+    // local antes de confirmar com o servidor), então não faz sentido
+    // segurar a tela esperando a rede. Erro de verdade aparece depois num
+    // toast, sem travar a interação.
+    const savePromise =
+      isEdit && product ? updateProduct(product.id, payload) : createProduct(payload);
+    savePromise
+      .then(() => toast.success(isEdit ? "Produto atualizado!" : "Produto cadastrado!"))
+      .catch((err) => {
+        console.error(err);
+        toast.error("Não foi possível salvar o produto. Tente novamente.");
+      });
+    onClose();
   }
 
   return (
