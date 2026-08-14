@@ -14,6 +14,7 @@ export function PWARegister() {
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const [isSafariIOS, setIsSafariIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
   const { settings } = useSettings();
 
@@ -26,7 +27,14 @@ export function PWARegister() {
     // Detecta se é iOS (Safari/Chrome no iOS)
     const userAgent = window.navigator.userAgent.toLowerCase();
     const isIOSDevice = /iphone|ipad|ipod/.test(userAgent);
+    
+    // Verifica se é o Safari padrão (e não navegador embutido do Instagram/Facebook ou Chrome)
+    const isChromeIOS = /crios/.test(userAgent);
+    const isInAppBrowser = /instagram|fbav|fban/.test(userAgent);
+    const isSafari = isIOSDevice && !isChromeIOS && !isInAppBrowser;
+
     setIsIOS(isIOSDevice);
+    setIsSafariIOS(isSafari);
 
     // Detecta se já está instalado (PWA Standalone)
     const isStandaloneMode = 
@@ -85,10 +93,16 @@ export function PWARegister() {
 
         {isIOS ? (
           <div className="mt-1 flex flex-wrap items-center justify-center gap-1.5 rounded-xl bg-acai-50/80 px-3 py-2.5 text-[13px] text-center text-acai-800 dark:bg-acai-900/50 dark:text-acai-200 border border-acai-100 dark:border-acai-800">
-            <span>Toque em</span>
-            <Share className="h-4 w-4 text-acai-600 dark:text-acai-400" />
-            <span>e depois em</span>
-            <strong className="font-bold">Adicionar à Tela de Início</strong>
+            {isSafariIOS ? (
+              <>
+                <span>Toque em</span>
+                <Share className="h-4 w-4 text-acai-600 dark:text-acai-400" />
+                <span>e depois em</span>
+                <strong className="font-bold">Adicionar à Tela de Início</strong>
+              </>
+            ) : (
+              <span>Abra este link no <strong>Safari</strong> para conseguir instalar o App.</span>
+            )}
           </div>
         ) : (
           <button
