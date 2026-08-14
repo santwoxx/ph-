@@ -290,9 +290,9 @@ export function ProductModal({
                           : "border-acai-100 hover:border-acai-200 dark:border-acai-800 dark:hover:border-acai-700"
                       }`}
                     >
-                      <span className="flex items-center gap-2.5 font-medium text-acai-800 dark:text-acai-200">
+                      <span className="flex min-w-0 items-center gap-2.5 font-medium text-acai-800 dark:text-acai-200">
                         <span
-                          className={`flex h-5 w-5 items-center justify-center rounded-md border-2 ${
+                          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 ${
                             checked
                               ? "border-acai-600 bg-acai-600 text-white"
                               : "border-acai-200 dark:border-acai-700"
@@ -300,7 +300,12 @@ export function ProductModal({
                         >
                           {checked && <Check className="h-3.5 w-3.5" />}
                         </span>
-                        {extra.name}
+                        {extra.imageUrl && (
+                          <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-acai-100 dark:bg-acai-800">
+                            <Image src={extra.imageUrl} alt="" fill unoptimized className="object-cover" />
+                          </span>
+                        )}
+                        <span className="truncate">{extra.name}</span>
                       </span>
                       <span className="font-semibold text-acai-600 dark:text-acai-300">
                         + {formatCurrency(extra.price)}

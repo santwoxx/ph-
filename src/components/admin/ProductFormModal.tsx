@@ -88,6 +88,24 @@ export function ProductFormModal({
     setExtras((s) => s.filter((_, idx) => idx !== i));
   }
 
+  async function handleExtraImage(i: number, file: File) {
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("A imagem deve ter até 5MB.");
+      return;
+    }
+    const key = `extra-${i}`;
+    setUploadingItemKey(key);
+    try {
+      const url = await uploadExtraOptionImage(file);
+      updateExtra(i, { imageUrl: url });
+    } catch (err) {
+      console.error(err);
+      toast.error("Não foi possível processar a imagem.");
+    } finally {
+      setUploadingItemKey((k) => (k === key ? null : k));
+    }
+  }
+
   function addGroup() {
     setExtraGroups((groups) => [
       ...groups,
@@ -338,6 +356,25 @@ export function ProductFormModal({
           <div className="space-y-2">
             {extras.map((ex, i) => (
               <div key={i} className="flex items-center gap-2">
+                <label className="group relative flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-acai-200 bg-acai-50 transition hover:border-acai-400">
+                  {uploadingItemKey === `extra-${i}` ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-acai-400" />
+                  ) : ex.imageUrl ? (
+                    <Image src={ex.imageUrl} alt="" fill className="object-cover" unoptimized />
+                  ) : (
+                    <ImagePlus className="h-4 w-4 text-acai-300" />
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = "";
+                      if (file) handleExtraImage(i, file);
+                    }}
+                  />
+                </label>
                 <input
                   value={ex.name}
                   onChange={(e) => updateExtra(i, { name: e.target.value })}
