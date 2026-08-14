@@ -406,7 +406,7 @@ export default function AdminSettingsPage() {
               value={newCategory}
               onChange={(e) => setNewCategory(e.target.value)}
               placeholder="Nova categoria"
-              className="flex-1 rounded-xl border-2 border-acai-100 px-4 py-2.5 text-sm outline-none focus:border-acai-400"
+              className="flex-1 rounded-xl border-2 border-acai-100 bg-white text-acai-950 px-4 py-2.5 text-sm outline-none focus:border-acai-400 placeholder:text-acai-300"
             />
             <Button type="button" variant="outline" onClick={addCategory}>
               <Plus className="h-4 w-4" /> Adicionar
@@ -436,7 +436,7 @@ export default function AdminSettingsPage() {
             onChange={(e) => setNewAdminEmail(e.target.value)}
             placeholder="email@exemplo.com"
             required
-            className="flex-1 rounded-xl border-2 border-acai-100 px-4 py-2.5 text-sm outline-none focus:border-acai-400"
+            className="flex-1 rounded-xl border-2 border-acai-100 bg-white text-acai-950 px-4 py-2.5 text-sm outline-none focus:border-acai-400 placeholder:text-acai-300"
           />
           <Button type="submit" loading={addingAdmin}>
             <Plus className="h-4 w-4" /> Adicionar admin
