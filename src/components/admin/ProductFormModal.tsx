@@ -8,7 +8,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
 import { createProduct, updateProduct } from "@/lib/data/products";
-import { uploadProductImage, deleteImageByPath } from "@/lib/data/upload";
+import { uploadProductImage, uploadExtraOptionImage, deleteImageByPath } from "@/lib/data/upload";
 import type { Product, ProductSize, ProductExtra, ExtraGroup } from "@/lib/types";
 
 function tempId() {
@@ -55,6 +55,7 @@ export function ProductFormModal({
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>(product?.imageUrl ?? "");
   const [saving, setSaving] = useState(false);
+  const [uploadingItemKey, setUploadingItemKey] = useState<string | null>(null);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -117,6 +118,27 @@ export function ProductFormModal({
     setExtraGroups((groups) =>
       groups.map((g, idx) => (idx === gi ? { ...g, items: g.items.filter((_, iidx) => iidx !== ii) } : g))
     );
+  }
+
+  // Comprime e salva na hora (diferente da foto principal, que só sobe ao
+  // enviar o formulário) porque cada item é pequeno e independente — não
+  // precisa esperar o resto do formulário pra já mostrar a miniatura.
+  async function handleGroupItemImage(gi: number, ii: number, file: File) {
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("A imagem deve ter até 5MB.");
+      return;
+    }
+    const key = `${gi}-${ii}`;
+    setUploadingItemKey(key);
+    try {
+      const url = await uploadExtraOptionImage(file);
+      updateGroupItem(gi, ii, { imageUrl: url });
+    } catch (err) {
+      console.error(err);
+      toast.error("Não foi possível processar a imagem.");
+    } finally {
+      setUploadingItemKey((k) => (k === key ? null : k));
+    }
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -416,6 +438,25 @@ export function ProductFormModal({
                 <div className="mt-2.5 space-y-2">
                   {group.items.map((item, ii) => (
                     <div key={ii} className="flex items-center gap-2 pl-2">
+                      <label className="group relative flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-acai-200 bg-acai-50 transition hover:border-acai-400">
+                        {uploadingItemKey === `${gi}-${ii}` ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-acai-400" />
+                        ) : item.imageUrl ? (
+                          <Image src={item.imageUrl} alt="" fill className="object-cover" unoptimized />
+                        ) : (
+                          <ImagePlus className="h-4 w-4 text-acai-300" />
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            e.target.value = "";
+                            if (file) handleGroupItemImage(gi, ii, file);
+                          }}
+                        />
+                      </label>
                       <input
                         value={item.name}
                         onChange={(e) => updateGroupItem(gi, ii, { name: e.target.value })}

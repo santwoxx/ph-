@@ -7,8 +7,13 @@
 // para não precisar mexer em quem chama.
 
 const MAX_DATA_URL_BYTES = 220 * 1024; // string completa da Data URL, com folga sobre o limite de 1MiB por documento do Firestore
+// Miniaturas de opção (creme, calda, adicional) ficam embutidas dentro do
+// MESMO documento do produto, e um produto pode ter várias — por isso o
+// limite por imagem aqui é bem mais apertado que o de uma foto principal.
+const MAX_OPTION_DATA_URL_BYTES = 35 * 1024;
 const MIN_JPEG_QUALITY = 0.4;
 const MIN_DIMENSION = 240;
+const MIN_OPTION_DIMENSION = 96;
 
 function loadImage(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -35,7 +40,12 @@ function canvasFrom(img: HTMLImageElement, maxDimension: number): HTMLCanvasElem
 // tamanho pequeno). Reduz qualidade e, se ainda assim não couber, reduz a
 // resolução também — algumas fotos (muito ruído/detalhe) não encolhem só
 // baixando a qualidade.
-async function compressToJpegDataUrl(file: File, maxDimension: number): Promise<string> {
+async function compressToJpegDataUrl(
+  file: File,
+  maxDimension: number,
+  maxBytes: number = MAX_DATA_URL_BYTES,
+  minDimension: number = MIN_DIMENSION
+): Promise<string> {
   const img = await loadImage(file);
   try {
     let dimension = maxDimension;
@@ -43,16 +53,16 @@ async function compressToJpegDataUrl(file: File, maxDimension: number): Promise<
       const canvas = canvasFrom(img, dimension);
       let quality = 0.82;
       let dataUrl = canvas.toDataURL("image/jpeg", quality);
-      while (dataUrl.length > MAX_DATA_URL_BYTES && quality > MIN_JPEG_QUALITY) {
+      while (dataUrl.length > maxBytes && quality > MIN_JPEG_QUALITY) {
         quality -= 0.12;
         dataUrl = canvas.toDataURL("image/jpeg", quality);
       }
-      if (dataUrl.length <= MAX_DATA_URL_BYTES || dimension <= MIN_DIMENSION) {
+      if (dataUrl.length <= maxBytes || dimension <= minDimension) {
         return dataUrl;
       }
       dimension = Math.round(dimension * 0.75);
     }
-    return canvasFrom(img, MIN_DIMENSION).toDataURL("image/jpeg", MIN_JPEG_QUALITY);
+    return canvasFrom(img, minDimension).toDataURL("image/jpeg", MIN_JPEG_QUALITY);
   } finally {
     URL.revokeObjectURL(img.src);
   }
@@ -94,6 +104,14 @@ export async function uploadSettingsImage(
       ? await compressToPngDataUrl(file, 480)
       : await compressToJpegDataUrl(file, 960);
   return { url, path: "" };
+}
+
+// Foto pequena de uma opção dentro de um grupo "monte seu copo" (creme,
+// calda, adicional — estilo iFood). Um produto pode ter várias, todas
+// embutidas no mesmo documento, por isso o tamanho-alvo é bem menor que o
+// da foto principal do produto.
+export async function uploadExtraOptionImage(file: File): Promise<string> {
+  return compressToJpegDataUrl(file, 200, MAX_OPTION_DATA_URL_BYTES, MIN_OPTION_DIMENSION);
 }
 
 // Sem Storage, não existe mais um arquivo separado para apagar: a imagem

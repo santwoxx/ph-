@@ -11,9 +11,23 @@ import { useCartStore } from "@/store/cart";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Input";
 
+// Frase da regra do grupo, no mesmo tom usado pelo iFood ("Escolha 1
+// opção", "Escolha até 3 opções", "Escolha de 1 a 3 opções").
+function groupRuleText(group: ExtraGroup): string {
+  const min = group.required ? Math.max(1, group.minSelect) : group.minSelect;
+  const max = group.maxSelect;
+  if (max === 1 && min <= 1) return "Escolha 1 opção";
+  if (max > 0 && min > 0 && min === max) return `Escolha ${max} opções`;
+  if (max > 0 && min > 0) return `Escolha de ${min} a ${max} opções`;
+  if (max > 0) return `Escolha até ${max} opções`;
+  if (min > 0) return `Escolha pelo menos ${min}`;
+  return "Escolha à vontade";
+}
+
 // "Monte seu copo": um cartão por grupo (creme, frutas, coberturas...), no
 // estilo do item customizável do iFood. Item único (maxSelect === 1) usa
-// visual de rádio; senão é multi-seleção que trava ao atingir o limite.
+// visual de rádio; senão é multi-seleção com ícone "+" que vira check ao
+// selecionar, e trava ao atingir o limite.
 function GroupSection({
   group,
   selected,
@@ -33,7 +47,7 @@ function GroupSection({
 
   return (
     <div className="mt-6">
-      <div className="mb-2.5 flex items-center justify-between gap-2">
+      <div className="mb-0.5 flex items-center justify-between gap-2">
         <p className="text-sm font-bold text-acai-900 dark:text-acai-100">{group.name}</p>
         <div className="flex items-center gap-1.5">
           {group.required && (
@@ -54,6 +68,7 @@ function GroupSection({
           )}
         </div>
       </div>
+      <p className="mb-2.5 text-xs text-acai-400 dark:text-acai-500">{groupRuleText(group)}</p>
       <div className="space-y-2">
         {items.map((item) => {
           const checked = selected.some((e) => e.name === item.name);
@@ -64,7 +79,7 @@ function GroupSection({
               type="button"
               onClick={() => onToggle(item)}
               disabled={disabled}
-              className={`flex w-full items-center justify-between rounded-xl border-2 px-4 py-2.5 text-sm transition ${
+              className={`flex w-full items-center justify-between gap-3 rounded-xl border-2 px-4 py-2.5 text-sm transition ${
                 checked
                   ? "border-acai-500 bg-acai-50 dark:bg-acai-900/50"
                   : disabled
@@ -72,18 +87,31 @@ function GroupSection({
                     : "border-acai-100 hover:border-acai-200 dark:border-acai-800 dark:hover:border-acai-700"
               }`}
             >
-              <span className="flex items-center gap-2.5 font-medium text-acai-800 dark:text-acai-200">
-                <span
-                  className={`flex h-5 w-5 shrink-0 items-center justify-center border-2 ${
-                    isSingle ? "rounded-full" : "rounded-md"
-                  } ${checked ? "border-acai-600 bg-acai-600 text-white" : "border-acai-200 dark:border-acai-700"}`}
-                >
-                  {checked && (isSingle ? <span className="h-2 w-2 rounded-full bg-white" /> : <Check className="h-3.5 w-3.5" />)}
-                </span>
-                {item.name}
+              <span className="flex min-w-0 items-center gap-2.5 font-medium text-acai-800 dark:text-acai-200">
+                {item.imageUrl && (
+                  <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-acai-100 dark:bg-acai-800">
+                    <Image src={item.imageUrl} alt="" fill unoptimized className="object-cover" />
+                  </span>
+                )}
+                <span className="truncate">{item.name}</span>
               </span>
-              <span className="font-semibold text-acai-600 dark:text-acai-300">
-                {item.price > 0 ? `+ ${formatCurrency(item.price)}` : "Grátis"}
+              <span className="flex shrink-0 items-center gap-2.5">
+                <span className="font-semibold text-acai-600 dark:text-acai-300">
+                  {item.price > 0 ? `+ ${formatCurrency(item.price)}` : "Grátis"}
+                </span>
+                <span
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${
+                    checked ? "border-acai-600 bg-acai-600 text-white" : "border-acai-200 text-acai-400 dark:border-acai-700"
+                  }`}
+                >
+                  {isSingle ? (
+                    checked && <span className="h-2 w-2 rounded-full bg-white" />
+                  ) : checked ? (
+                    <Check className="h-3.5 w-3.5" />
+                  ) : (
+                    <Plus className="h-3.5 w-3.5" />
+                  )}
+                </span>
               </span>
             </button>
           );

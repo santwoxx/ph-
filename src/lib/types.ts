@@ -7,6 +7,7 @@ export type ProductExtra = {
   name: string;
   price: number;
   available?: boolean;
+  imageUrl?: string;
 };
 
 // "Monte seu copo": grupos de complementos com regra de seleção própria,
