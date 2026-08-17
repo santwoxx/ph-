@@ -2,11 +2,11 @@
 
 import { useEffect, useMemo, useState, useRef } from "react";
 import toast from "react-hot-toast";
-import { ChevronDown, ClipboardList, Phone, MapPin, Bike, Store, Clock, Star } from "lucide-react";
+import { ChevronDown, ClipboardList, Phone, MapPin, Bike, Store, Clock, Star, Trash2 } from "lucide-react";
 import clsx from "clsx";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Spinner } from "@/components/ui/Spinner";
-import { subscribeToAllOrders, updateOrderStatus } from "@/lib/data/orders";
+import { subscribeToAllOrders, updateOrderStatus, deleteOrder } from "@/lib/data/orders";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import {
   ORDER_STATUS_FLOW,
@@ -156,6 +156,17 @@ export default function AdminOrdersPage() {
       toast.error("Não foi possível atualizar o pedido.");
     } finally {
       setUpdatingId(null);
+    }
+  }
+
+  async function handleDeleteOrder(id: string) {
+    if (!window.confirm("Tem certeza que deseja apagar este pedido? Esta ação não pode ser desfeita.")) return;
+    try {
+      await deleteOrder(id);
+      toast.success("Pedido apagado com sucesso.");
+    } catch (err) {
+      console.error(err);
+      toast.error("Não foi possível apagar o pedido.");
     }
   }
 
@@ -343,6 +354,13 @@ export default function AdminOrdersPage() {
                           >
                             <Printer className="h-4 w-4" />
                             Imprimir Comanda
+                          </button>
+                          <button
+                            onClick={() => handleDeleteOrder(order.id)}
+                            className="flex items-center gap-2 rounded-xl border-2 border-red-200 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Apagar
                           </button>
                         </div>
                       </div>

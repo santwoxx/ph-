@@ -2,6 +2,7 @@ import {
   collection,
   addDoc,
   updateDoc,
+  deleteDoc,
   doc,
   onSnapshot,
   orderBy,
@@ -155,6 +156,10 @@ export async function updateOrderStatus(order: Order, status: OrderStatus) {
   }
 
   return batch.commit();
+}
+
+export async function deleteOrder(id: string) {
+  return deleteDoc(doc(db, COLLECTION, id));
 }
 
 export async function updateOrder(id: string, data: Partial<Order>) {
