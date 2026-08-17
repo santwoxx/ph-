@@ -204,7 +204,7 @@ export function ProductModal({
       size: size!.label,
       unitPrice: size!.price,
       extras: [...selectedExtras, ...groupExtrasFlat],
-      notes: notes.trim() || undefined,
+      notes: notes.trim(),
       qty,
     });
     toast.success(`${product!.name} adicionado ao carrinho!`);

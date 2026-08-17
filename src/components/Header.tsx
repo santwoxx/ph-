@@ -68,7 +68,7 @@ export function Header() {
               >
                 <User className="h-4 w-4" />
                 <span className="hidden max-w-[120px] truncate sm:inline">
-                  {user.displayName || user.email}
+                  {user.isAnonymous ? "Visitante" : user.displayName || user.email}
                 </span>
               </button>
               {menuOpen && (

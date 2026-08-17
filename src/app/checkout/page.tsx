@@ -2,7 +2,6 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import {
   ArrowLeft,
@@ -30,8 +29,7 @@ import { checkIsStoreOpen } from "@/lib/schedule";
 import type { DeliveryType, PaymentMethod, Coupon, OrderAddress } from "@/lib/types";
 
 export default function CheckoutPage() {
-  const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, loading, signInAsGuest } = useAuth();
   const { settings } = useSettings();
   const { items, subtotal, clear } = useCartStore();
 
@@ -54,7 +52,6 @@ export default function CheckoutPage() {
 
   const [changeFor, setChangeFor] = useState("");
   const [notes, setNotes] = useState("");
-  const [scheduledTo, setScheduledTo] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [placedOrderDetails, setPlacedOrderDetails] = useState<any>(null);
 
@@ -183,11 +180,7 @@ export default function CheckoutPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!user) {
-      router.push("/login?redirect=/checkout");
-      return;
-    }
-    
+
     if (!checkIsStoreOpen(settings)) {
       toast.error("A loja está fechada no momento.");
       return;
@@ -197,6 +190,15 @@ export default function CheckoutPage() {
 
     setSubmitting(true);
     try {
+      // Cliente não precisa ter conta pra pedir: se ainda não estiver
+      // logado, autentica como visitante de forma transparente (sem popup,
+      // sem tela de login) só pra ter um uid válido pras regras do
+      // Firestore. Quem quiser, ainda pode entrar com Google depois.
+      let orderUser = user;
+      if (!orderUser) {
+        orderUser = await signInAsGuest();
+      }
+
       const orderItems = items.map((item) => {
         const extrasTotal = item.extras.reduce((s, ex) => s + ex.price, 0);
         return {
@@ -206,7 +208,7 @@ export default function CheckoutPage() {
           unitPrice: item.unitPrice,
           qty: item.qty,
           extras: item.extras,
-          notes: item.notes,
+          notes: item.notes || "",
           lineTotal: (item.unitPrice + extrasTotal) * item.qty,
         };
       });
@@ -221,17 +223,17 @@ export default function CheckoutPage() {
         // Não bloqueia a criação do pedido: salvar o endereço no perfil é só
         // conveniência para a próxima compra, não precisa esperar isso pra
         // então começar a criar o pedido (o que dobrava o tempo de espera).
-        updateUserProfile(user.uid, { addresses: newAddressesList }).catch((err) =>
+        updateUserProfile(orderUser.uid, { addresses: newAddressesList }).catch((err) =>
           console.error("Falha ao salvar endereço no perfil:", err)
         );
         setSavedAddresses(newAddressesList);
       }
 
       const orderData = {
-        customerUid: user.uid,
+        customerUid: orderUser.uid,
         customerName: name,
         customerPhone: phone,
-        customerEmail: user.email || "",
+        customerEmail: orderUser.email || "",
         deliveryType,
         address: orderAddress,
         items: orderItems,
@@ -242,7 +244,6 @@ export default function CheckoutPage() {
         paymentMethod,
         changeFor: paymentMethod === "dinheiro" && changeFor ? Number(changeFor) : null,
         notes,
-        scheduledTo: scheduledTo || undefined,
       };
 
       const ref = await createOrder(orderData);
@@ -279,7 +280,6 @@ export default function CheckoutPage() {
     }
     wppText += `\n*Pagamento:* ${placedOrderDetails.paymentMethod}`;
     if (placedOrderDetails.changeFor) wppText += ` (Troco para ${formatCurrency(placedOrderDetails.changeFor)})`;
-    if (placedOrderDetails.scheduledTo) wppText += `\n*Agendado para:* ${placedOrderDetails.scheduledTo}`;
     if (placedOrderDetails.deliveryType === "delivery") {
       wppText += `\n*Entrega:* ${placedOrderDetails.address.street}, ${placedOrderDetails.address.number}`;
     } else {
@@ -349,10 +349,11 @@ export default function CheckoutPage() {
         {!user && (
           <div className="mt-5 rounded-2xl border-2 border-dashed border-acai-200 bg-acai-50 p-5">
             <p className="text-sm font-semibold text-acai-800">
-              Entre ou crie sua conta para concluir o pedido
+              Já tem conta? Entre pra acompanhar seu pedido mais fácil
             </p>
             <p className="mt-1 text-sm text-acai-500">
-              Assim você acompanha o status e pode repetir pedidos facilmente.
+              Não é obrigatório — você pode concluir o pedido sem entrar. Mas com uma conta
+              você acompanha o status e pode repetir pedidos facilmente.
             </p>
             <Link href="/login?redirect=/checkout" className="mt-3 inline-block">
               <Button>Entrar / Criar conta</Button>
@@ -391,23 +392,6 @@ export default function CheckoutPage() {
                   <Store className="h-6 w-6 text-acai-600" />
                   <span className="text-sm font-semibold text-acai-800">Retirar na loja</span>
                 </button>
-              </div>
-
-              <div className="mt-6 border-t border-acai-50 pt-5">
-                <h3 className="mb-3 text-sm font-bold text-acai-900">Agendar horário (Opcional)</h3>
-                <div className="flex items-center gap-3">
-                  <Clock className="h-5 w-5 text-acai-400" />
-                  <div className="flex-1">
-                    <Input
-                      type="time"
-                      label=""
-                      placeholder="O mais rápido possível"
-                      value={scheduledTo}
-                      onChange={(e) => setScheduledTo(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <p className="mt-1 text-xs text-acai-400 ml-8">Se vazio, enviaremos o mais rápido possível.</p>
               </div>
             </section>
 
@@ -658,7 +642,7 @@ export default function CheckoutPage() {
               </p>
             )}
             <Button type="submit" fullWidth size="lg" loading={submitting} disabled={belowMinimum}>
-              {user ? "Confirmar pedido" : "Entrar para confirmar"}
+              Confirmar pedido
             </Button>
           </aside>
         </form>
