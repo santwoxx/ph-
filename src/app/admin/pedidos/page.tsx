@@ -215,40 +215,48 @@ export default function AdminOrdersPage() {
               <div key={order.id} className="overflow-hidden rounded-2xl border border-acai-100 bg-white shadow-card">
                 <button
                   onClick={() => setOpenId(open ? null : order.id)}
-                  className="flex w-full flex-wrap items-center justify-between gap-3 p-4 text-left sm:p-5"
+                  className="flex w-full flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 text-left sm:p-5"
                 >
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={clsx(
-                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-                        order.deliveryType === "delivery" ? "bg-acai-100 text-acai-700" : "bg-gold/15 text-amber-700"
-                      )}
-                    >
-                      {order.deliveryType === "delivery" ? <Bike className="h-4 w-4" /> : <Store className="h-4 w-4" />}
-                    </span>
-                    <div>
-                      <p className="font-mono text-xs font-semibold text-acai-400 flex items-center gap-2">
-                        #{order.id.slice(-6).toUpperCase()}
-                        {order.scheduledTo && (
-                          <span className="flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
-                            <Clock className="h-3 w-3" /> {order.scheduledTo}
-                          </span>
+                  <div className="flex w-full items-center justify-between sm:w-auto">
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={clsx(
+                          "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+                          order.deliveryType === "delivery" ? "bg-acai-100 text-acai-700" : "bg-gold/15 text-amber-700"
                         )}
-                        {order.rating && (
-                          <span className="flex items-center gap-0.5 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
-                            <Star className="h-3 w-3 fill-amber-500 text-amber-500" /> {order.rating}
-                          </span>
-                        )}
-                      </p>
-                      <p className="text-sm font-semibold text-acai-900">{order.customerName}</p>
+                      >
+                        {order.deliveryType === "delivery" ? <Bike className="h-4 w-4" /> : <Store className="h-4 w-4" />}
+                      </span>
+                      <div>
+                        <p className="font-mono text-xs font-semibold text-acai-400 flex flex-wrap items-center gap-2">
+                          #{order.id.slice(-6).toUpperCase()}
+                          {order.scheduledTo && (
+                            <span className="flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
+                              <Clock className="h-3 w-3" /> {order.scheduledTo}
+                            </span>
+                          )}
+                          {order.rating && (
+                            <span className="flex items-center gap-0.5 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
+                              <Star className="h-3 w-3 fill-amber-500 text-amber-500" /> {order.rating}
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-sm font-semibold text-acai-900">{order.customerName}</p>
+                      </div>
+                    </div>
+                    <ChevronDown className={clsx("h-4 w-4 shrink-0 text-acai-400 transition-transform sm:hidden", open && "rotate-180")} />
+                  </div>
+
+                  <div className="flex w-full items-center justify-between gap-3 border-t border-acai-50 pt-3 sm:w-auto sm:border-0 sm:pt-0">
+                    <p className="text-xs text-acai-400">{formatDateTime(order.createdAt)}</p>
+                    <div className="flex items-center gap-3">
+                      <StatusBadge status={order.status} />
+                      <span className="font-display text-base font-bold text-acai-950">
+                        {formatCurrency(order.total)}
+                      </span>
+                      <ChevronDown className={clsx("hidden h-4 w-4 shrink-0 text-acai-400 transition-transform sm:block", open && "rotate-180")} />
                     </div>
                   </div>
-                  <p className="text-xs text-acai-400">{formatDateTime(order.createdAt)}</p>
-                  <StatusBadge status={order.status} />
-                  <span className="font-display text-base font-bold text-acai-950">
-                    {formatCurrency(order.total)}
-                  </span>
-                  <ChevronDown className={clsx("h-4 w-4 text-acai-400 transition-transform", open && "rotate-180")} />
                 </button>
 
                 {open && (
@@ -329,12 +337,12 @@ export default function AdminOrdersPage() {
 
                       <div>
                         <p className="mb-2 text-sm font-bold text-acai-900">Atualizar status</p>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                           {nextStatus && (
                             <button
                               disabled={updatingId === order.id}
                               onClick={() => handleStatusChange(order, nextStatus)}
-                              className="rounded-xl bg-acai-gradient px-4 py-2 text-sm font-semibold text-white shadow-soft transition hover:brightness-110 disabled:opacity-60"
+                              className="w-full sm:w-auto rounded-xl bg-acai-gradient px-4 py-2 text-sm font-semibold text-white shadow-soft transition hover:brightness-110 disabled:opacity-60"
                             >
                               Avançar para &quot;{ORDER_STATUS_LABEL[nextStatus]}&quot;
                             </button>
@@ -343,21 +351,21 @@ export default function AdminOrdersPage() {
                             <button
                               disabled={updatingId === order.id}
                               onClick={() => handleStatusChange(order, "cancelled")}
-                              className="rounded-xl border-2 border-red-200 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-60"
+                              className="w-full sm:w-auto rounded-xl border-2 border-red-200 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-60"
                             >
                               Cancelar pedido
                             </button>
                           )}
                           <button
                             onClick={() => printOrderReceipt(order, settings)}
-                            className="flex items-center gap-2 rounded-xl border-2 border-acai-200 px-4 py-2 text-sm font-semibold text-acai-700 transition hover:bg-acai-50"
+                            className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl border-2 border-acai-200 px-4 py-2 text-sm font-semibold text-acai-700 transition hover:bg-acai-50"
                           >
                             <Printer className="h-4 w-4" />
                             Imprimir Comanda
                           </button>
                           <button
                             onClick={() => handleDeleteOrder(order.id)}
-                            className="flex items-center gap-2 rounded-xl border-2 border-red-200 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                            className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl border-2 border-red-200 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50"
                           >
                             <Trash2 className="h-4 w-4" />
                             Apagar
