@@ -32,7 +32,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="flex min-h-screen bg-acai-50/40">
+    <div className="flex min-h-screen overflow-x-hidden bg-acai-50/40">
       <div className="hidden lg:block">
         <AdminSidebar />
       </div>
@@ -46,7 +46,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       )}
 
-      <div className="flex min-h-screen flex-1 flex-col">
+      <div className="flex min-h-screen flex-1 flex-col min-w-0">
         <div className="flex items-center gap-3 border-b border-acai-100 bg-white px-4 py-3 lg:hidden">
           <button
             onClick={() => setMobileOpen(true)}
