@@ -78,6 +78,17 @@ export default function CheckoutPage() {
     };
   }, [user]);
 
+  // Garante um uid válido assim que a tela de checkout abre, em vez de só no
+  // clique de "Confirmar pedido" — assim o pedido do visitante já nasce
+  // vinculado a uma sessão estável, e ele encontra o pedido em "Meus
+  // pedidos" logo em seguida sem depender de nenhuma corrida entre o envio
+  // do pedido e a autenticação. `signInAsGuest` é idempotente: se o cliente
+  // já estiver logado (visitante ou com conta), não faz nada.
+  useEffect(() => {
+    if (loading || user) return;
+    signInAsGuest().catch((err) => console.error("Falha ao iniciar sessão de visitante:", err));
+  }, [loading, user, signInAsGuest]);
+
   function handleSelectAddress(index: number | "new", addressesList = savedAddresses) {
     setSelectedAddressIndex(index);
     if (index !== "new" && addressesList[index]) {
@@ -346,7 +357,7 @@ export default function CheckoutPage() {
           Finalizar pedido
         </h1>
 
-        {!user && (
+        {(!user || user.isAnonymous) && (
           <div className="mt-5 rounded-2xl border-2 border-dashed border-acai-200 bg-acai-50 p-5">
             <p className="text-sm font-semibold text-acai-800">
               Já tem conta? Entre pra acompanhar seu pedido mais fácil

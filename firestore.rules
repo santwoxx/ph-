@@ -59,20 +59,36 @@ service cloud.firestore {
     }
 
     // ---------- orders ----------
-    // Cliente autenticado pode criar pedidos vinculados ao próprio uid
-    // e ler apenas os seus. Alterar status, cancelar, excluir e ver
-    // todos os pedidos é exclusivo do admin (painel financeiro) — com uma
-    // exceção: o próprio cliente pode avaliar (nota + comentário) um
-    // pedido seu já entregue, uma única vez, sem poder mexer em mais
-    // nenhum outro campo do pedido.
+    // Cliente autenticado (com conta Google ou como visitante, via login
+    // anônimo) pode criar pedidos vinculados ao próprio uid e ler apenas os
+    // seus. Alterar status, cancelar, excluir e ver todos os pedidos é
+    // exclusivo do admin (painel financeiro) — com uma exceção: o próprio
+    // cliente pode avaliar (nota + comentário) um pedido seu já entregue,
+    // uma única vez, sem poder mexer em mais nenhum outro campo do pedido.
+    //
+    // Como pedir sem conta Google não exige mais nenhuma fricção humana
+    // (um bot consegue um uid anônimo com uma chamada só), a validação de
+    // formato abaixo é a única barreira contra pedidos forjados/spam —
+    // por isso confere nome, telefone, tipo de entrega, forma de pagamento
+    // e limites de tamanho, além do que já existia.
     match /orders/{orderId} {
       allow create: if isSignedIn() &&
         request.resource.data.customerUid == request.auth.uid &&
         request.resource.data.status == 'pending' &&
+        request.resource.data.customerName is string &&
+        request.resource.data.customerName.size() > 0 &&
+        request.resource.data.customerName.size() <= 120 &&
+        request.resource.data.customerPhone is string &&
+        request.resource.data.customerPhone.size() > 0 &&
+        request.resource.data.customerPhone.size() <= 30 &&
+        request.resource.data.deliveryType in ['delivery', 'pickup'] &&
+        request.resource.data.paymentMethod in ['pix', 'dinheiro', 'cartao'] &&
         request.resource.data.total is number &&
         request.resource.data.total > 0 &&
+        request.resource.data.total <= 50000 &&
         request.resource.data.items is list &&
-        request.resource.data.items.size() > 0;
+        request.resource.data.items.size() > 0 &&
+        request.resource.data.items.size() <= 60;
 
       allow read: if isAdmin() ||
         (isSignedIn() && resource.data.customerUid == request.auth.uid);

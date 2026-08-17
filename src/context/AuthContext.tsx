@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useState,
@@ -99,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsub();
   }, [user]);
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = useCallback(async () => {
     const current = auth.currentUser;
     let cred;
     if (current?.isAnonymous) {
@@ -128,13 +129,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email: cred.user.email || "",
     });
     return cred.user;
-  };
+  }, []);
 
-  const signInAsGuest = async () => {
+  const signInAsGuest = useCallback(async () => {
     if (auth.currentUser) return auth.currentUser;
     const cred = await signInAnonymously(auth);
     return cred.user;
-  };
+  }, []);
 
   const signOutUser = async () => {
     await fbSignOut(auth);
